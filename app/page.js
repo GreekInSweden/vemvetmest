@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
 
+function stockholmNow() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Stockholm' }));
+}
+function ymd(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function Dashboard() {
   const router = useRouter();
   const [userId, setUserId] = useState(null);
@@ -14,6 +22,11 @@ export default function Dashboard() {
   const [pendingLeagues, setPendingLeagues] = useState([]);
   const [activeLeagues, setActiveLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [todayChallenge, setTodayChallenge] = useState(null);
+  const [missedChallenges, setMissedChallenges] = useState([]);
+  const [livesRemaining, setLivesRemaining] = useState(5);
+  const [isWeekend, setIsWeekend] = useState(false);
 
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
@@ -30,6 +43,51 @@ export default function Dashboard() {
     const rows = (memberships || []).map(m => m.leagues).filter(Boolean);
     setPendingLeagues(rows.filter(l => l.status === 'pending'));
     setActiveLeagues(rows.filter(l => l.status === 'approved'));
+  }
+
+  async function loadDailyChallenges(uid) {
+    const now = stockholmNow();
+    const isoWeekday = ((now.getDay() + 6) % 7) + 1;
+    const todayStr = ymd(now);
+    setIsWeekend(isoWeekday === 6 || isoWeekday === 7);
+
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (isoWeekday - 1));
+    const mondayStr = ymd(monday);
+
+    const { data: challenges } = await supabase
+      .from('daily_challenges')
+      .select('id, challenge_date, weekday, game_lists(title, subtitle)')
+      .gte('challenge_date', mondayStr)
+      .lte('challenge_date', todayStr)
+      .order('challenge_date');
+
+    const rows = challenges || [];
+    const ids = rows.map(c => c.id);
+
+    let attemptedIds = new Set();
+    if (ids.length) {
+      const { data: attempts } = await supabase
+        .from('daily_attempts')
+        .select('daily_challenge_id')
+        .eq('user_id', uid)
+        .in('daily_challenge_id', ids);
+      attemptedIds = new Set((attempts || []).map(a => a.daily_challenge_id));
+    }
+
+    const today = rows.find(c => c.challenge_date === todayStr);
+    setTodayChallenge(today ? { ...today, attempted: attemptedIds.has(today.id) } : null);
+
+    setMissedChallenges(rows.filter(c => c.challenge_date !== todayStr && !attemptedIds.has(c.id)));
+
+    const yearStart = `${now.getFullYear()}-01-01`;
+    const { count } = await supabase
+      .from('daily_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', uid)
+      .eq('used_life', true)
+      .gte('created_at', yearStart);
+    setLivesRemaining(Math.max(0, 5 - (count || 0)));
   }
 
   useEffect(() => {
@@ -61,6 +119,7 @@ export default function Dashboard() {
       setLists(gameLists || []);
 
       await loadLeagues(uid);
+      await loadDailyChallenges(uid);
       setLoading(false);
     }
     load();
@@ -125,6 +184,54 @@ export default function Dashboard() {
         <h1 className="brand">Ranglistan</h1>
         <p className="subhead">Välj ett spel — fler kategorier och listor läggs till löpande.</p>
       </header>
+
+      {/* ---- Dagens utmaning ---- */}
+      {todayChallenge && (
+        <>
+          <div className="cat-title" style={{ marginTop: 30 }}>Dagens utmaning</div>
+          <a
+            href={todayChallenge.attempted ? '#' : `/daily/${todayChallenge.id}`}
+            className="panel"
+            style={{
+              display: 'block', marginBottom: 20, textDecoration: 'none', color: 'inherit',
+              border: '1px solid var(--amber)', cursor: todayChallenge.attempted ? 'default' : 'pointer'
+            }}
+            onClick={e => { if (todayChallenge.attempted) e.preventDefault(); }}
+          >
+            <div className="eyebrow">{todayChallenge.weekday} &middot; spelas bara idag</div>
+            <div style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 22, color: 'var(--amber-glow)', margin: '4px 0' }}>
+              {todayChallenge.game_lists?.title}
+            </div>
+            <div className="subhead">
+              {todayChallenge.attempted ? 'Redan spelat idag ✓' : todayChallenge.game_lists?.subtitle}
+            </div>
+          </a>
+        </>
+      )}
+
+      {/* ---- Missade pass (bara helg) ---- */}
+      {isWeekend && missedChallenges.length > 0 && (
+        <>
+          <div className="cat-title">Missade pass denna vecka</div>
+          <p className="subhead" style={{ marginBottom: 10 }}>
+            Du har <b style={{ color: 'var(--amber-glow)' }}>{livesRemaining}</b> liv kvar i år.
+          </p>
+          <div className="list-grid" style={{ marginBottom: 20 }}>
+            {missedChallenges.map(c => (
+              <a
+                key={c.id}
+                href={livesRemaining > 0 ? `/daily/${c.id}` : '#'}
+                className="plaque"
+                style={{ opacity: livesRemaining > 0 ? 1 : 0.5, cursor: livesRemaining > 0 ? 'pointer' : 'default' }}
+                onClick={e => { if (livesRemaining <= 0) e.preventDefault(); }}
+              >
+                <span className="tag">{c.weekday} &middot; {c.challenge_date}</span>
+                {c.game_lists?.title} {livesRemaining > 0 ? '— använd ett liv' : ''}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* ---- Ligor ---- */}
       <div className="cat-title" style={{ marginTop: 34 }}>Mina privata ligor</div>
@@ -195,7 +302,8 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* ---- Spel ---- */}
+      {/* ---- Spel (fritt spelbara övningslistor) ---- */}
+      <div className="cat-title" style={{ marginTop: 30 }}>Övningsspel</div>
       {categories.map(cat => {
         const catLists = lists.filter(l => l.category_id === cat.id);
         if (catLists.length === 0) return null;
