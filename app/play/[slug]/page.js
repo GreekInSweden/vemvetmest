@@ -23,8 +23,9 @@ function formatValue(item, list) {
 }
 
 function formatTime(s) {
-  const m = String(Math.floor(s / 60)).padStart(2, '0');
-  const sec = String(s % 60).padStart(2, '0');
+  const clamped = Math.max(0, s);
+  const m = String(Math.floor(clamped / 60)).padStart(2, '0');
+  const sec = String(clamped % 60).padStart(2, '0');
   return `${m}:${sec}`;
 }
 
@@ -36,15 +37,18 @@ export default function PlayPage() {
   const [items, setItems] = useState([]);
   const [guessedRanks, setGuessedRanks] = useState(new Set());
   const [misses, setMisses] = useState(0);
-  const [seconds, setSeconds] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [endReason, setEndReason] = useState(null); // 'complete' | 'timeout' | 'giveup'
   const [toast, setToast] = useState('');
   const [shake, setShake] = useState(false);
   const [guess, setGuess] = useState('');
   const inputRef = useRef(null);
   const timerRef = useRef(null);
   const guessedRef = useRef(new Set());
+  const missesRef = useRef(0);
   const finishedRef = useRef(false);
+  const timeLimitRef = useRef(300);
 
   useEffect(() => {
     async function load() {
@@ -70,7 +74,10 @@ export default function PlayPage() {
         .order('rank');
       setItems(itemRows || []);
 
-      timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+      const limit = listRow.time_limit_seconds || 300;
+      timeLimitRef.current = limit;
+      setSecondsLeft(limit);
+      startTimer();
     }
     load();
     return () => clearInterval(timerRef.current);
@@ -78,25 +85,44 @@ export default function PlayPage() {
 
   useEffect(() => { inputRef.current && inputRef.current.focus(); }, [items]);
 
+  function startTimer() {
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setSecondsLeft(s => {
+        if (s <= 1) {
+          clearInterval(timerRef.current);
+          setTimeout(() => endGame('timeout'), 0);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  }
+
   function showToast(msg) {
     setToast(msg);
     clearTimeout(showToast._t);
     showToast._t = setTimeout(() => setToast(''), 1800);
   }
 
-  async function endGame(won) {
+  async function endGame(reason) {
+    if (finishedRef.current) return;
     finishedRef.current = true;
     setFinished(true);
+    setEndReason(reason);
     clearInterval(timerRef.current);
+
+    const elapsed = timeLimitRef.current - (reason === 'timeout' ? 0 : secondsLeft);
+
     if (userId && list) {
       await supabase.from('results').insert({
         user_id: userId,
         list_id: list.id,
         guessed: guessedRef.current.size,
         total: items.length,
-        misses,
-        seconds,
-        completed: won
+        misses: missesRef.current,
+        seconds: elapsed,
+        completed: reason === 'complete'
       });
     }
   }
@@ -115,7 +141,8 @@ export default function PlayPage() {
     );
 
     if (matching.length === 0) {
-      setMisses(m => m + 1);
+      missesRef.current += 1;
+      setMisses(missesRef.current);
       setShake(true);
       setTimeout(() => setShake(false), 300);
       showToast('Inte med på listan.');
@@ -142,30 +169,33 @@ export default function PlayPage() {
       showToast('Rätt! #' + newMatches[0].rank + ' ' + newMatches[0].name);
     }
 
-    if (next.size === items.length) endGame(true);
+    if (next.size === items.length) endGame('complete');
   }
 
   function giveUp() {
     if (finishedRef.current) return;
-    endGame(false);
+    endGame('giveup');
   }
 
   function restart() {
     guessedRef.current = new Set();
+    missesRef.current = 0;
     finishedRef.current = false;
     setGuessedRanks(new Set());
     setMisses(0);
-    setSeconds(0);
+    setSecondsLeft(timeLimitRef.current);
     setFinished(false);
+    setEndReason(null);
     setToast('');
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000);
+    startTimer();
     setTimeout(() => inputRef.current && inputRef.current.focus(), 0);
   }
 
   if (!list) {
     return <div className="wrap"><p className="subhead">Laddar listan…</p></div>;
   }
+
+  const isLowTime = secondsLeft <= 30 && !finished;
 
   return (
     <div className="wrap">
@@ -183,8 +213,9 @@ export default function PlayPage() {
 
         <div className="stats">
           <div className="stat">Gissade: <b>{guessedRanks.size}</b> / {items.length}</div>
-          <div className="stat">Tid: <b>{formatTime(seconds)}</b></div>
-          <div className="stat">Fel: <b>{misses}</b></div>
+          <div className="stat">
+            Tid kvar: <b style={isLowTime ? { color: 'var(--miss)' } : undefined}>{formatTime(secondsLeft)}</b>
+          </div>
         </div>
 
         <form onSubmit={submitGuess} className={`input-row ${shake ? 'shake' : ''}`}>
@@ -209,21 +240,21 @@ export default function PlayPage() {
 
         {finished && (
           <div className="end-banner">
-            {guessedRanks.size === items.length
-              ? `Full pott! ${items.length} av ${items.length} på ${formatTime(seconds)}, ${misses} fel.`
-              : `Facit visat — du fick ${guessedRanks.size} av ${items.length} själv.`}
+            {endReason === 'complete' && `Full pott! ${items.length} av ${items.length} på ${formatTime(timeLimitRef.current - secondsLeft)}.`}
+            {endReason === 'timeout' && `Tiden tog slut — du fick ${guessedRanks.size} av ${items.length}.`}
+            {endReason === 'giveup' && `Facit visat — du fick ${guessedRanks.size} av ${items.length} själv.`}
           </div>
         )}
 
         <div className="board-list" style={{ marginTop: 18 }}>
           {items.map(item => {
             const isGuessed = guessedRanks.has(item.rank);
-            const isRevealedByGiveUp = finished && !isGuessed;
+            const isRevealedByEnd = finished && !isGuessed;
             return (
               <div className="row" key={item.rank}>
                 <div className="rank">{item.rank}</div>
-                <div className={`flap ${isGuessed ? 'revealed' : ''} ${isRevealedByGiveUp ? 'given-up' : ''}`}>
-                  {isGuessed || isRevealedByGiveUp ? (
+                <div className={`flap ${isGuessed ? 'revealed' : ''} ${isRevealedByEnd ? 'given-up' : ''}`}>
+                  {isGuessed || isRevealedByEnd ? (
                     <>
                       <span className="name">{item.name}</span>
                       <span className="value">{formatValue(item, list)}</span>
