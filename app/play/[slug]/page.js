@@ -108,34 +108,41 @@ export default function PlayPage() {
     if (!raw) return;
     const n = normalize(raw);
 
-    for (const rank of guessedRef.current) {
-      const item = items.find(i => i.rank === rank);
-      if (normalize(item.name) === n || (item.aliases || []).some(a => normalize(a) === n)) {
-        showToast('Redan gissat: ' + item.name);
-        setGuess('');
-        return;
-      }
-    }
-
-    const match = items.find(item =>
-      !guessedRef.current.has(item.rank) &&
-      (normalize(item.name) === n || (item.aliases || []).some(a => normalize(a) === n))
+    // Ett namn/alias kan matcha flera rader (t.ex. "Eskilstuna" matchar både
+    // IFK Eskilstuna och Athletic Eskilstuna) — då fylls alla samtidigt.
+    const matching = items.filter(item =>
+      normalize(item.name) === n || (item.aliases || []).some(a => normalize(a) === n)
     );
 
-    if (match) {
-      const next = new Set(guessedRef.current);
-      next.add(match.rank);
-      guessedRef.current = next;
-      setGuessedRanks(next);
-      setGuess('');
-      showToast('Rätt! #' + match.rank + ' ' + match.name);
-      if (next.size === items.length) endGame(true);
-    } else {
+    if (matching.length === 0) {
       setMisses(m => m + 1);
       setShake(true);
       setTimeout(() => setShake(false), 300);
       showToast('Inte med på listan.');
+      return;
     }
+
+    const newMatches = matching.filter(item => !guessedRef.current.has(item.rank));
+
+    if (newMatches.length === 0) {
+      showToast('Redan gissat: ' + matching[0].name);
+      setGuess('');
+      return;
+    }
+
+    const next = new Set(guessedRef.current);
+    newMatches.forEach(item => next.add(item.rank));
+    guessedRef.current = next;
+    setGuessedRanks(next);
+    setGuess('');
+
+    if (newMatches.length > 1) {
+      showToast(`Rätt! ${newMatches.length} träffar: ` + newMatches.map(m => '#' + m.rank + ' ' + m.name).join(', '));
+    } else {
+      showToast('Rätt! #' + newMatches[0].rank + ' ' + newMatches[0].name);
+    }
+
+    if (next.size === items.length) endGame(true);
   }
 
   function giveUp() {
