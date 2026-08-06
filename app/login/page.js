@@ -30,7 +30,7 @@ export default function LoginPage() {
 
   return (
     <div className="wrap" style={{ maxWidth: 420, paddingTop: 60 }}>
-      <div className="eyebrow">Ranglistan</div>
+      <div className="eyebrow">Kan Du Alla</div>
       <h1 className="brand" style={{ fontSize: 32 }}>Logga in</h1>
       <p className="subhead" style={{ marginBottom: 22 }}>Kul att du är tillbaka.</p>
 
