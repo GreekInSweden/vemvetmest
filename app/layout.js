@@ -1,7 +1,7 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'Ranglistan — gissa hela tabellen',
+  title: 'Kan Du Alla — gissa hela tabellen',
   description: 'Skriv och gissa dig igenom ranglistor inom sport, geografi, historia och mer.'
 };
 
