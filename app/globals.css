@@ -49,7 +49,7 @@ h1.brand{
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 22px clamp(14px, 3vw, 30px) 26px;
+  padding: 16px clamp(14px, 3vw, 24px) 18px;
   box-shadow: 0 20px 50px -25px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
 }
 
@@ -131,7 +131,7 @@ h1.brand{
 .topbar .user{ font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--muted); }
 
 /* ---- Spelmotor (flap-tavla) ---- */
-.stats{ display:flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.stats{ display:flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .stat{
   background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px;
   padding: 8px 14px; font-family:'JetBrains Mono', monospace; font-size: 13px;
@@ -146,21 +146,21 @@ h1.brand{
 .toast{ min-height: 18px; font-size: 12px; color: var(--amber-glow); font-family:'JetBrains Mono', monospace; margin: 4px 2px 14px; }
 .foot-actions{ display:flex; gap:10px; margin-bottom: 18px; }
 
-.board-list{ column-count: 2; column-gap: 14px; }
-@media (max-width: 620px){ .board-list{ column-count: 1; } }
+.board-list{ column-width: 260px; column-gap: 12px; }
+@media (max-width: 620px){ .board-list{ column-count: 1; column-width: auto; } }
 
-.row{ display:flex; align-items: stretch; gap: 8px; margin-bottom: 8px; break-inside: avoid; }
+.row{ display:flex; align-items: stretch; gap: 6px; margin-bottom: 5px; break-inside: avoid; }
 .rank{
-  flex: 0 0 40px; display:flex; align-items:center; justify-content:center;
-  font-family:'JetBrains Mono', monospace; font-weight: 700; font-size: 14px;
-  color: var(--muted); background: var(--bg-2); border: 1px solid var(--line); border-radius: 4px;
+  flex: 0 0 26px; display:flex; align-items:center; justify-content:center;
+  font-family:'JetBrains Mono', monospace; font-weight: 700; font-size: 11px;
+  color: var(--muted); background: var(--bg-2); border: 1px solid var(--line); border-radius: 3px;
 }
 .flap{
-  flex: 1; position: relative; min-height: 40px; border-radius: 4px; overflow: hidden;
+  flex: 1; position: relative; min-height: 26px; border-radius: 3px; overflow: hidden;
   background: repeating-linear-gradient(135deg, #0e2015, #0e2015 6px, #112418 6px, #112418 12px);
-  border: 1px dashed var(--line); display:flex; align-items:center; padding: 0 12px;
+  border: 1px dashed var(--line); display:flex; align-items:center; padding: 0 8px;
 }
-.flap .placeholder{ font-family:'JetBrains Mono', monospace; color: var(--muted); font-size: 12px; letter-spacing: .1em; }
+.flap .placeholder{ font-family:'JetBrains Mono', monospace; color: var(--muted); font-size: 10px; letter-spacing: .08em; }
 .flap.revealed{
   background: linear-gradient(180deg, var(--flap-bg), var(--flap-bg-2));
   border: 1px solid #b8a880; animation: flip .35s cubic-bezier(.2,.8,.3,1); justify-content: space-between;
@@ -168,8 +168,8 @@ h1.brand{
 .flap.given-up{ background: linear-gradient(180deg, #2a3630, #212d27); border: 1px solid var(--line); justify-content: space-between; }
 .flap.given-up .name, .flap.given-up .value{ color: var(--muted); }
 @keyframes flip{ 0%{ transform: rotateX(90deg); opacity:0; } 100%{ transform: rotateX(0deg); opacity:1; } }
-.flap .name{ color: var(--ink); font-weight: 600; font-size: 13.5px; }
-.flap .value{ font-family:'JetBrains Mono', monospace; font-size: 11.5px; color: #5b5238; white-space: nowrap; margin-left: 8px; }
+.flap .name{ color: var(--ink); font-weight: 600; font-size: 11.5px; line-height: 1.2; }
+.flap .value{ font-family:'JetBrains Mono', monospace; font-size: 9.5px; color: #5b5238; white-space: nowrap; margin-left: 6px; }
 
 .end-banner{
   margin-top: 16px; padding: 14px 16px; border-radius: 6px;
