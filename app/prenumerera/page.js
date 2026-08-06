@@ -2,8 +2,33 @@
 
 import { useState } from 'react';
 
+const PLANS = {
+  monthly: {
+    label: 'Månadsvis',
+    price: '29 kr',
+    unit: ' / månad',
+    badge: null,
+    note: 'Avsluta när du vill. Inga bindningstider.',
+  },
+  yearly: {
+    label: 'Helår',
+    price: '299 kr',
+    unit: ' / år',
+    badge: 'Bäst värde för en',
+    note: 'Betala en gång, spela hela året.',
+  },
+  family: {
+    label: 'Familj',
+    price: '897 kr',
+    unit: ' / år',
+    badge: '4 konton — en på oss',
+    note: '897 kr är exakt vad 3 helårskonton kostar. Det fjärde följer med.',
+  },
+};
+
 export default function PrenumereraPage() {
   const [plan, setPlan] = useState('yearly');
+  const p = PLANS[plan];
 
   return (
     <div className="wrap">
@@ -20,46 +45,58 @@ export default function PrenumereraPage() {
       </header>
 
       <div style={{ display: 'flex', gap: 10, maxWidth: 480, margin: '0 auto 20px', justifyContent: 'center' }}>
-        <button
-          className="plaque"
-          style={{ flex: 1, textAlign: 'center', borderColor: plan === 'monthly' ? 'var(--amber)' : undefined, color: plan === 'monthly' ? 'var(--text)' : undefined }}
-          onClick={() => setPlan('monthly')}
-        >
-          Månadsvis
-        </button>
-        <button
-          className="plaque"
-          style={{ flex: 1, textAlign: 'center', borderColor: plan === 'yearly' ? 'var(--amber)' : undefined, color: plan === 'yearly' ? 'var(--text)' : undefined }}
-          onClick={() => setPlan('yearly')}
-        >
-          Helår
-        </button>
+        {Object.entries(PLANS).map(([key, val]) => (
+          <button
+            key={key}
+            className="plaque"
+            style={{
+              flex: 1, textAlign: 'center',
+              borderColor: plan === key ? 'var(--amber)' : undefined,
+              color: plan === key ? 'var(--text)' : undefined
+            }}
+            onClick={() => setPlan(key)}
+          >
+            {val.label}
+          </button>
+        ))}
       </div>
 
       <div className="upgrade-card" style={{ maxWidth: 480, margin: '0 auto 24px' }}>
-        {plan === 'yearly' && <span className="upgrade-badge">Bäst värde</span>}
-        {plan === 'monthly' ? (
-          <div className="upgrade-price" style={{ fontSize: 44, marginBottom: 4 }}>
-            29 kr<span style={{ fontSize: 15 }}> / månad</span>
-          </div>
-        ) : (
-          <div className="upgrade-price" style={{ fontSize: 44, marginBottom: 4 }}>
-            299 kr<span style={{ fontSize: 15 }}> / år</span>
-          </div>
-        )}
-        <p className="subhead" style={{ marginBottom: 20 }}>
-          {plan === 'monthly' ? 'Avsluta när du vill. Inga bindningstider.' : 'Betala en gång, spela hela året.'}
-        </p>
+        {p.badge && <span className="upgrade-badge">{p.badge}</span>}
+        <div className="upgrade-price" style={{ fontSize: 44, marginBottom: 4 }}>
+          {p.price}<span style={{ fontSize: 15 }}>{p.unit}</span>
+        </div>
+        <p className="subhead" style={{ marginBottom: 20 }}>{p.note}</p>
 
-        <ul className="upgrade-perks" style={{ marginBottom: 22 }}>
-          <li>✓ <b>Dagens utmaning</b> varje måndag och onsdag</li>
-          <li>✓ Ämnet dolt fram till du klickar in, rättvist för alla</li>
-          <li>✓ <b>5 liv om året</b> — fredagar är sista chansen att ta igen missade pass</li>
-          <li>✓ Lördagar avslöjas veckans resultat i topplistan</li>
-          <li>✓ Skapa eller gå med i <b>privata ligor</b> med kollegor och vänner</li>
-          <li>✓ <b>Topplistor</b> — totalt, per liga och per omgång</li>
-          <li>✓ Ständigt växande bank av övningsspel</li>
-        </ul>
+        {plan === 'family' ? (
+          <>
+            <ul className="upgrade-perks" style={{ marginBottom: 18 }}>
+              <li>✓ <b>4 fristående konton</b>, allt du betalar för är detta enda köp</li>
+              <li>✓ Samma <b>29 perks</b> som helårsplanen, för alla fyra</li>
+              <li>✓ Perfekt för en familj eller en fast vängrupp som redan spelar ihop</li>
+            </ul>
+            <div className="panel" style={{ background: 'var(--bg-2)', marginBottom: 22, padding: '14px 16px' }}>
+              <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 13, textTransform: 'uppercase', color: 'var(--amber-glow)', marginBottom: 6 }}>
+                Så funkar det
+              </div>
+              <p className="subhead" style={{ margin: 0, fontSize: 13 }}>
+                Du betalar en gång och blir ägare av familjeplanen. Precis som med en privat liga
+                får du en <b>6-teckens kod</b> att skicka till de tre andra — de skriver in koden
+                under sin profil och är igång direkt. Ingen av dem behöver betala något.
+              </p>
+            </div>
+          </>
+        ) : (
+          <ul className="upgrade-perks" style={{ marginBottom: 22 }}>
+            <li>✓ <b>Dagens utmaning</b> varje måndag och onsdag</li>
+            <li>✓ Ämnet dolt fram till du klickar in, rättvist för alla</li>
+            <li>✓ <b>5 liv om året</b> — fredagar är sista chansen att ta igen missade pass</li>
+            <li>✓ Lördagar avslöjas veckans resultat i topplistan</li>
+            <li>✓ Skapa eller gå med i <b>privata ligor</b> med kollegor och vänner</li>
+            <li>✓ <b>Topplistor</b> — totalt, per liga och per omgång</li>
+            <li>✓ Ständigt växande bank av övningsspel</li>
+          </ul>
+        )}
 
         <button className="btn btn-primary" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
           Betalning öppnar snart
