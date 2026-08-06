@@ -115,7 +115,7 @@ export default function TopplistorPage() {
 
       <header style={{ marginBottom: 20 }}>
         <div className="eyebrow">Topplistor</div>
-        <h1 className="brand" style={{ fontSize: 32 }}>Ranglistan</h1>
+        <h1 className="brand" style={{ fontSize: 32 }}>Kan Du Alla</h1>
       </header>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
