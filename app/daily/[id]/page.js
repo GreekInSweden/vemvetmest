@@ -139,13 +139,13 @@ export default function DailyPlayPage() {
         return;
       }
 
-      // Beräkna rätt till spel: idag = fritt, annars bara på helgen inom
-      // samma vecka, och bara om man har liv kvar.
+      // Beräkna rätt till spel: idag = fritt, annars bara på FREDAGEN samma
+      // vecka (den enda dagen liv kan lösas in), och bara om man har liv kvar.
       const now = stockholmNow();
       const isoWeekday = ((now.getDay() + 6) % 7) + 1;
       const today = ymd(now);
       const isToday = challengeRow.challenge_date === today;
-      const isWeekend = isoWeekday === 6 || isoWeekday === 7;
+      const isFridayCatchup = isoWeekday === 5;
 
       const monday = new Date(now);
       monday.setDate(now.getDate() - (isoWeekday - 1));
@@ -166,13 +166,13 @@ export default function DailyPlayPage() {
 
       if (isToday) {
         setEligibility({ ok: true, usingLife: false });
-      } else if (isWeekend && withinThisWeek && livesRemaining > 0) {
+      } else if (isFridayCatchup && withinThisWeek && livesRemaining > 0) {
         setEligibility({ ok: true, usingLife: true, livesRemaining });
         usingLifeRef.current = true;
-      } else if (isWeekend && withinThisWeek && livesRemaining <= 0) {
+      } else if (isFridayCatchup && withinThisWeek && livesRemaining <= 0) {
         setEligibility({ ok: false, reason: 'Du har inga liv kvar i år.' });
-      } else if (!isWeekend && !isToday) {
-        setEligibility({ ok: false, reason: 'Det här passet går bara att spela på sin egen dag, eller med ett liv på helgen.' });
+      } else if (!isFridayCatchup && !isToday) {
+        setEligibility({ ok: false, reason: 'Det här passet går bara att spela på sin egen dag, eller med ett liv på fredagen samma vecka.' });
       } else {
         setEligibility({ ok: false, reason: 'Det här passet går inte längre att spela.' });
       }
