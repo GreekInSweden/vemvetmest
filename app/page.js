@@ -24,13 +24,15 @@ export default function Dashboard() {
   const [todayChallenge, setTodayChallenge] = useState(null);
   const [missedChallenges, setMissedChallenges] = useState([]);
   const [livesRemaining, setLivesRemaining] = useState(5);
-  const [isWeekend, setIsWeekend] = useState(false);
+  const [isFridayCatchup, setIsFridayCatchup] = useState(false);
+  const [isSaturdayReveal, setIsSaturdayReveal] = useState(false);
 
   async function loadDailyChallenges(uid) {
     const now = stockholmNow();
     const isoWeekday = ((now.getDay() + 6) % 7) + 1;
     const todayStr = ymd(now);
-    setIsWeekend(isoWeekday === 6 || isoWeekday === 7);
+    setIsFridayCatchup(isoWeekday === 5);
+    setIsSaturdayReveal(isoWeekday === 6);
 
     const monday = new Date(now);
     monday.setDate(now.getDate() - (isoWeekday - 1));
@@ -138,18 +140,19 @@ export default function Dashboard() {
         <span className="upgrade-badge">Obegränsad tillgång</span>
         <div className="upgrade-title">Vill du tävla på riktigt?</div>
         <p className="subhead" style={{ maxWidth: 520, marginBottom: 0 }}>
-          156 nya utmaningar om året — tre färska varje vecka, dolda tills du klickar in.
+          104 nya utmaningar om året — två färska varje vecka, dolda tills du klickar in.
           Skapa egna ligor med kollegorna och jaga topplistan.
         </p>
         <ul className="upgrade-perks">
-          <li>✓ <b>Dagens utmaning</b> — måndag, onsdag, fredag, hela året</li>
+          <li>✓ <b>Dagens utmaning</b> — måndag och onsdag, hela året</li>
+          <li>✓ <b>Fredag</b> är sista chansen att lösa in ett liv om du missat något</li>
           <li>✓ <b>Egna privata ligor</b> med vänner och kollegor</li>
-          <li>✓ <b>Topplistor</b> — totalt, per liga och per omgång</li>
+          <li>✓ <b>Topplistor</b> — avslöjas varje lördag, totalt, per liga och per omgång</li>
         </ul>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
           <div>
             <div className="upgrade-price">29 kr<span> / månad</span></div>
-            <div className="subhead" style={{ fontSize: 12, marginTop: 2 }}>Avsluta när du vill. Du kommer inte ångra dig.</div>
+            <div className="subhead" style={{ fontSize: 12, marginTop: 2 }}>eller 299 kr för hela året</div>
           </div>
           <a href="/prenumerera" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
             Bli medlem →
@@ -192,12 +195,13 @@ export default function Dashboard() {
         </>
       )}
 
-      {/* ---- Missade pass (bara helg) ---- */}
-      {isWeekend && missedChallenges.length > 0 && (
+      {/* ---- Fredag: sista chansen att lösa in liv ---- */}
+      {isFridayCatchup && missedChallenges.length > 0 && (
         <>
-          <div className="cat-title">Missade pass denna vecka</div>
+          <div className="cat-title">Fredag — sista chansen den här veckan</div>
           <p className="subhead" style={{ marginBottom: 10 }}>
             Du har <b style={{ color: 'var(--amber-glow)' }}>{livesRemaining}</b> liv kvar i år.
+            Imorgon (lördag) avslöjas veckans resultat för alla — sista chansen att hänga med idag.
           </p>
           <div className="list-grid" style={{ marginBottom: 20 }}>
             {missedChallenges.map(c => (
@@ -214,6 +218,24 @@ export default function Dashboard() {
             ))}
           </div>
         </>
+      )}
+
+      {/* ---- Lördag: teaser mot veckans resultat ---- */}
+      {isSaturdayReveal && (
+        <a
+          href="/topplistor"
+          className="panel"
+          style={{
+            display: 'block', marginBottom: 20, textDecoration: 'none', color: 'inherit',
+            border: '1px solid var(--amber)'
+          }}
+        >
+          <div className="eyebrow">Lördag &middot; veckans resultat</div>
+          <div style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 20, color: 'var(--amber-glow)', margin: '4px 0' }}>
+            Se var du hamnade →
+          </div>
+          <div className="subhead">Måndagens och onsdagens ämnen är nu avslöjade i topplistan.</div>
+        </a>
       )}
 
       {/* ---- Spel (fritt spelbara övningslistor) ---- */}
