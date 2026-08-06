@@ -55,9 +55,11 @@ export default function Dashboard() {
     monday.setDate(now.getDate() - (isoWeekday - 1));
     const mondayStr = ymd(monday);
 
+    // OBS: game_lists joinas medvetet INTE in här - ämnet ska inte
+    // kunna läcka ut till klienten innan man faktiskt öppnat spelet.
     const { data: challenges } = await supabase
       .from('daily_challenges')
-      .select('id, challenge_date, weekday, game_lists(title, subtitle)')
+      .select('id, challenge_date, weekday')
       .gte('challenge_date', mondayStr)
       .lte('challenge_date', todayStr)
       .order('challenge_date');
@@ -174,6 +176,7 @@ export default function Dashboard() {
       <div className="topbar">
         <div className="user">Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b></div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
           {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
           <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
         </div>
@@ -200,10 +203,10 @@ export default function Dashboard() {
           >
             <div className="eyebrow">{todayChallenge.weekday} &middot; spelas bara idag</div>
             <div style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 22, color: 'var(--amber-glow)', margin: '4px 0' }}>
-              {todayChallenge.game_lists?.title}
+              Dagens Utmaning
             </div>
             <div className="subhead">
-              {todayChallenge.attempted ? 'Redan spelat idag ✓' : todayChallenge.game_lists?.subtitle}
+              {todayChallenge.attempted ? 'Redan spelat idag ✓' : 'Ämnet avslöjas när du klickar in — ingen förhandstitt'}
             </div>
           </a>
         </>
@@ -226,7 +229,7 @@ export default function Dashboard() {
                 onClick={e => { if (livesRemaining <= 0) e.preventDefault(); }}
               >
                 <span className="tag">{c.weekday} &middot; {c.challenge_date}</span>
-                {c.game_lists?.title} {livesRemaining > 0 ? '— använd ett liv' : ''}
+                {livesRemaining > 0 ? 'Missat pass — använd ett liv' : 'Missat pass'}
               </a>
             ))}
           </div>
