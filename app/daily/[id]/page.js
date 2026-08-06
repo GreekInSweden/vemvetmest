@@ -241,6 +241,42 @@ export default function DailyPlayPage() {
     if (!raw) return;
     let n = normalize(raw);
     let wasFuzzy = false;
+    const mode = list?.guess_mode || 'default';
+
+    if (mode === 'strict_order') {
+      const remaining = items.filter(item => !guessedRef.current.has(item.rank));
+      if (remaining.length === 0) return;
+      const nextItem = remaining.reduce((a, b) => (a.rank < b.rank ? a : b));
+
+      let isMatch = normalize(nextItem.name) === n || (nextItem.aliases || []).some(a => normalize(a) === n);
+      if (!isMatch) {
+        for (const t of [nextItem.name, ...(nextItem.aliases || [])]) {
+          const nt = normalize(t);
+          const dist = levenshtein(n, nt);
+          const threshold = Math.min(fuzzyThreshold(nt.length), fuzzyThreshold(n.length));
+          if (dist > 0 && dist <= threshold) { isMatch = true; wasFuzzy = true; break; }
+        }
+      }
+
+      if (!isMatch) {
+        missesRef.current += 1;
+        setShake(true);
+        setTimeout(() => setShake(false), 300);
+        showToast('Fel — det är inte nästa svar i ordningen.');
+        return;
+      }
+
+      const next = new Set(guessedRef.current);
+      next.add(nextItem.rank);
+      guessedRef.current = next;
+      setGuessedRanks(next);
+      setGuess('');
+      showToast(wasFuzzy
+        ? `Rätt! #${nextItem.rank} ${nextItem.name} (tolkat trots stavfel)`
+        : `Rätt! #${nextItem.rank} ${nextItem.name}`);
+      if (next.size === items.length) endGame('complete');
+      return;
+    }
 
     let matching = items.filter(item =>
       normalize(item.name) === n || (item.aliases || []).some(a => normalize(a) === n)
@@ -273,13 +309,18 @@ export default function DailyPlayPage() {
       return;
     }
 
-    // Exakta namnträffar (flera rader med samma namn) fylls en i taget;
-    // alias som matchar flera OLIKA namn fylls alla samtidigt.
-    const exactUnguessed = unguessedMatching.filter(item => normalize(item.name) === n);
-    const remainingSameName = exactUnguessed.length > 1 ? exactUnguessed.length - 1 : 0;
-    const newMatches = exactUnguessed.length > 0
-      ? [exactUnguessed.reduce((a, b) => (a.rank < b.rank ? a : b))]
-      : unguessedMatching;
+    let newMatches;
+    let remainingSameName = 0;
+
+    if (mode === 'multi_fill') {
+      newMatches = unguessedMatching;
+    } else {
+      const exactUnguessed = unguessedMatching.filter(item => normalize(item.name) === n);
+      remainingSameName = exactUnguessed.length > 1 ? exactUnguessed.length - 1 : 0;
+      newMatches = exactUnguessed.length > 0
+        ? [exactUnguessed.reduce((a, b) => (a.rank < b.rank ? a : b))]
+        : unguessedMatching;
+    }
 
     const next = new Set(guessedRef.current);
     newMatches.forEach(item => next.add(item.rank));
@@ -360,6 +401,16 @@ export default function DailyPlayPage() {
         {eligibility.usingLife && (
           <div className="subhead" style={{ marginBottom: 14, color: 'var(--amber-glow)' }}>
             Du använder ett liv för att spela detta i efterhand ({eligibility.livesRemaining} kvar innan denna omgång).
+          </div>
+        )}
+        {list.guess_mode === 'strict_order' && (
+          <div style={{ display: 'inline-block', background: 'var(--amber)', color: '#241505', fontFamily: "'Oswald', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: 3, marginBottom: 12 }}>
+            🔢 Måste gissas i rätt ordning
+          </div>
+        )}
+        {list.guess_mode === 'multi_fill' && (
+          <div className="subhead" style={{ marginBottom: 12, fontStyle: 'italic' }}>
+            💡 Ett namn kan ge flera träffar på en gång om det förekommer flera gånger i listan.
           </div>
         )}
 
