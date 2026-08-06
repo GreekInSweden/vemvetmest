@@ -117,6 +117,23 @@ export default function AdminPage() {
     setGames(prev => prev.map(g => ({ ...g, featured: checked.has(g.id) })));
   }
 
+  async function removeGame(id, title) {
+    if (!window.confirm(`Ta bort spelet "${title}" permanent? Detta tar även bort eventuell historik om spelet någon gång använts som Dagens Utmaning. Går inte att ångra.`)) return;
+    setGamesMsg('');
+    const { error } = await supabase.from('game_lists').delete().eq('id', id);
+    if (error) {
+      setGamesMsg('Kunde inte ta bort: ' + error.message);
+      return;
+    }
+    setGames(prev => prev.filter(g => g.id !== id));
+    setChecked(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    setGamesMsg(`"${title}" borttaget.`);
+  }
+
   if (loading) return <div className="wrap"><p className="subhead">Laddar…</p></div>;
 
   if (isAdmin === false) {
@@ -194,22 +211,34 @@ export default function AdminPage() {
             <div className="cat-title">{cat.name}</div>
             <div className="list-grid">
               {catGames.map(g => (
-                <label
+                <div
                   key={g.id}
                   className="plaque"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 10,
                     borderColor: checked.has(g.id) ? 'var(--amber)' : undefined
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={checked.has(g.id)}
-                    onChange={() => toggleGame(g.id)}
-                    style={{ width: 16, height: 16, accentColor: 'var(--amber)' }}
-                  />
-                  {g.title}
-                </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1 }}>
+                    <input
+                      type="checkbox"
+                      checked={checked.has(g.id)}
+                      onChange={() => toggleGame(g.id)}
+                      style={{ width: 16, height: 16, accentColor: 'var(--amber)' }}
+                    />
+                    {g.title}
+                  </label>
+                  <button
+                    onClick={() => removeGame(g.id, g.title)}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--miss)',
+                      cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '2px 4px'
+                    }}
+                    title="Ta bort spelet permanent"
+                  >
+                    ✕
+                  </button>
+                </div>
               ))}
             </div>
           </div>
