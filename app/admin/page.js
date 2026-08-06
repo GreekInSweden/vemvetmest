@@ -12,6 +12,12 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
 
+  const [categories, setCategories] = useState([]);
+  const [games, setGames] = useState([]);
+  const [checked, setChecked] = useState(new Set());
+  const [gamesMsg, setGamesMsg] = useState('');
+  const [savingGames, setSavingGames] = useState(false);
+
   async function load() {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
@@ -47,6 +53,17 @@ export default function AdminPage() {
 
     setPending(pendingLeagues || []);
     setApproved(approvedLeagues || []);
+
+    const { data: cats } = await supabase.from('categories').select('*').order('sort_order');
+    const { data: gameLists } = await supabase
+      .from('game_lists')
+      .select('id, title, category_id, featured')
+      .order('sort_order');
+
+    setCategories(cats || []);
+    setGames(gameLists || []);
+    setChecked(new Set((gameLists || []).filter(g => g.featured).map(g => g.id)));
+
     setLoading(false);
   }
 
@@ -72,6 +89,32 @@ export default function AdminPage() {
     const { error } = await supabase.from('leagues').delete().eq('id', id);
     if (error) { setMsg('Kunde inte ta bort: ' + error.message); return; }
     load();
+  }
+
+  function toggleGame(id) {
+    setChecked(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function saveGames() {
+    setSavingGames(true);
+    setGamesMsg('');
+    const allIds = games.map(g => g.id);
+    const featuredIds = allIds.filter(id => checked.has(id));
+    const hiddenIds = allIds.filter(id => !checked.has(id));
+
+    if (featuredIds.length > 0) {
+      await supabase.from('game_lists').update({ featured: true }).in('id', featuredIds);
+    }
+    if (hiddenIds.length > 0) {
+      await supabase.from('game_lists').update({ featured: false }).in('id', hiddenIds);
+    }
+    setSavingGames(false);
+    setGamesMsg(`Sparat! ${featuredIds.length} spel syns nu på startsidan.`);
+    setGames(prev => prev.map(g => ({ ...g, featured: checked.has(g.id) })));
   }
 
   if (loading) return <div className="wrap"><p className="subhead">Laddar…</p></div>;
@@ -125,6 +168,59 @@ export default function AdminPage() {
           </div>
         </div>
       ))}
+
+      {/* ---- Synliga spel ---- */}
+      <header style={{ margin: '40px 0 20px' }}>
+        <div className="eyebrow">Adminpanel</div>
+        <h1 className="brand" style={{ fontSize: 28 }}>Välj synliga spel</h1>
+        <p className="subhead">
+          Bockade spel visas under "Övningsspel" på startsidan. Resten ligger dolda i väntan på att
+          slumpas fram som dagens utmaning. Just nu: <b style={{ color: 'var(--amber-glow)' }}>{checked.size}</b> markerade.
+        </p>
+      </header>
+
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+        <button className="btn btn-primary" style={{ width: 'auto' }} onClick={saveGames} disabled={savingGames}>
+          {savingGames ? 'Sparar…' : 'Spara'}
+        </button>
+        {gamesMsg && <span className="toast" style={{ margin: 0 }}>{gamesMsg}</span>}
+      </div>
+
+      {categories.map(cat => {
+        const catGames = games.filter(g => g.category_id === cat.id);
+        if (catGames.length === 0) return null;
+        return (
+          <div key={cat.id} style={{ marginBottom: 18 }}>
+            <div className="cat-title">{cat.name}</div>
+            <div className="list-grid">
+              {catGames.map(g => (
+                <label
+                  key={g.id}
+                  className="plaque"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                    borderColor: checked.has(g.id) ? 'var(--amber)' : undefined
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked.has(g.id)}
+                    onChange={() => toggleGame(g.id)}
+                    style={{ width: 16, height: 16, accentColor: 'var(--amber)' }}
+                  />
+                  {g.title}
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      <div style={{ marginTop: 10 }}>
+        <button className="btn btn-primary" style={{ width: 'auto' }} onClick={saveGames} disabled={savingGames}>
+          {savingGames ? 'Sparar…' : 'Spara'}
+        </button>
+      </div>
     </div>
   );
 }
