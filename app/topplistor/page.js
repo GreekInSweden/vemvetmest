@@ -18,15 +18,15 @@ function mondayOf(dateStr) {
   d.setDate(d.getDate() - (isoWeekday - 1));
   return d;
 }
-// En utmaning avslöjas först måndagen EFTER dess egen vecka
-// (dvs efter att söndagens liv-fönster stängt).
+// En utmaning avslöjas från och med LÖRDAG samma vecka (dvs efter att
+// fredagens liv-fönster stängt och veckans två pass är klara).
 function isRevealed(challengeDateStr) {
   const monday = mondayOf(challengeDateStr);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
-  const today = stockholmNow();
-  return today > sunday;
+  const saturday = new Date(monday);
+  saturday.setDate(monday.getDate() + 5);
+  const saturdayStr = ymd(saturday);
+  const todayStr = ymd(stockholmNow());
+  return todayStr >= saturdayStr;
 }
 
 export default function TopplistorPage() {
@@ -158,7 +158,7 @@ export default function TopplistorPage() {
 
       <div className="cat-title">Tidigare utmaningar</div>
       <p className="subhead" style={{ marginBottom: 14 }}>
-        Ämnet visas först måndagen efter att veckans alla liv och chanser är förbrukade.
+        Ämnet visas från och med lördag samma vecka, när fredagens liv-fönster stängt.
       </p>
 
       <div style={{ marginBottom: 20 }}>
