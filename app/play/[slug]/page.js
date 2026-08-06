@@ -100,11 +100,10 @@ export default function PlayPage() {
   useEffect(() => {
     async function load() {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        router.push('/login');
-        return;
-      }
-      setUserId(sessionData.session.user.id);
+      // Ingen inloggning krävs för att TESTA ett övningsspel - resultatet
+      // sparas bara om man är inloggad (userId är null annars, vilket
+      // insert-anropet vid spelslut redan hanterar gracefully).
+      setUserId(sessionData.session ? sessionData.session.user.id : null);
 
       const { data: listRow } = await supabase
         .from('game_lists')
