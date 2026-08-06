@@ -12,7 +12,7 @@ export default function PrenumereraPage() {
       </div>
 
       <header style={{ textAlign: 'center', marginBottom: 30 }}>
-        <div className="eyebrow">Ranglistan Medlemskap</div>
+        <div className="eyebrow">Kan Du Alla Medlemskap</div>
         <h1 className="brand">Tävla på riktigt</h1>
         <p className="subhead" style={{ maxWidth: 480, margin: '0 auto' }}>
           Dagliga utmaningar, egna ligor och topplistor att skryta med.
