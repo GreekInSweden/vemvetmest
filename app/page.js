@@ -14,12 +14,10 @@ function ymd(d) {
 
 export default function Dashboard() {
   const router = useRouter();
-  const [userId, setUserId] = useState(null);
   const [username, setUsername] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [categories, setCategories] = useState([]);
   const [lists, setLists] = useState([]);
-  const [pendingLeagues, setPendingLeagues] = useState([]);
   const [activeLeagues, setActiveLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,23 +25,6 @@ export default function Dashboard() {
   const [missedChallenges, setMissedChallenges] = useState([]);
   const [livesRemaining, setLivesRemaining] = useState(5);
   const [isWeekend, setIsWeekend] = useState(false);
-
-  const [showCreate, setShowCreate] = useState(false);
-  const [showJoin, setShowJoin] = useState(false);
-  const [leagueName, setLeagueName] = useState('');
-  const [joinCode, setJoinCode] = useState('');
-  const [leagueMsg, setLeagueMsg] = useState('');
-
-  async function loadLeagues(uid) {
-    const { data: memberships } = await supabase
-      .from('league_members')
-      .select('leagues(id, name, status, invite_code)')
-      .eq('user_id', uid);
-
-    const rows = (memberships || []).map(m => m.leagues).filter(Boolean);
-    setPendingLeagues(rows.filter(l => l.status === 'pending'));
-    setActiveLeagues(rows.filter(l => l.status === 'approved'));
-  }
 
   async function loadDailyChallenges(uid) {
     const now = stockholmNow();
@@ -55,8 +36,6 @@ export default function Dashboard() {
     monday.setDate(now.getDate() - (isoWeekday - 1));
     const mondayStr = ymd(monday);
 
-    // OBS: game_lists joinas medvetet INTE in här - ämnet ska inte
-    // kunna läcka ut till klienten innan man faktiskt öppnat spelet.
     const { data: challenges } = await supabase
       .from('daily_challenges')
       .select('id, challenge_date, weekday')
@@ -79,7 +58,6 @@ export default function Dashboard() {
 
     const today = rows.find(c => c.challenge_date === todayStr);
     setTodayChallenge(today ? { ...today, attempted: attemptedIds.has(today.id) } : null);
-
     setMissedChallenges(rows.filter(c => c.challenge_date !== todayStr && !attemptedIds.has(c.id)));
 
     const yearStart = `${now.getFullYear()}-01-01`;
@@ -95,13 +73,8 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        router.push('/login');
-        return;
-      }
-
+      if (!sessionData.session) { router.push('/login'); return; }
       const uid = sessionData.session.user.id;
-      setUserId(uid);
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -117,11 +90,16 @@ export default function Dashboard() {
         .select('id, slug, title, subtitle, category_id')
         .eq('featured', true)
         .order('sort_order');
-
       setCategories(cats || []);
       setLists(gameLists || []);
 
-      await loadLeagues(uid);
+      const { data: memberships } = await supabase
+        .from('league_members')
+        .select('leagues(id, name, status, invite_code)')
+        .eq('user_id', uid);
+      const rows = (memberships || []).map(m => m.leagues).filter(Boolean);
+      setActiveLeagues(rows.filter(l => l.status === 'approved'));
+
       await loadDailyChallenges(uid);
       setLoading(false);
     }
@@ -133,41 +111,6 @@ export default function Dashboard() {
     router.push('/login');
   }
 
-  async function handleCreateLeague(e) {
-    e.preventDefault();
-    setLeagueMsg('');
-    const name = leagueName.trim();
-    if (name.length < 3) {
-      setLeagueMsg('Namnet måste vara minst 3 tecken.');
-      return;
-    }
-    const { error } = await supabase.from('leagues').insert({ name, owner_id: userId });
-    if (error) {
-      setLeagueMsg('Kunde inte skapa liga: ' + error.message);
-      return;
-    }
-    setLeagueName('');
-    setShowCreate(false);
-    setLeagueMsg('Liga skickad för godkännande!');
-    await loadLeagues(userId);
-  }
-
-  async function handleJoinLeague(e) {
-    e.preventDefault();
-    setLeagueMsg('');
-    const code = joinCode.trim();
-    if (!code) return;
-    const { data, error } = await supabase.rpc('join_league', { p_code: code });
-    if (error) {
-      setLeagueMsg('Ogiltig eller ej godkänd kod.');
-      return;
-    }
-    setJoinCode('');
-    setShowJoin(false);
-    setLeagueMsg(`Du gick med i "${data?.[0]?.league_name || 'ligan'}"!`);
-    await loadLeagues(userId);
-  }
-
   if (loading) {
     return <div className="wrap"><p className="subhead">Laddar…</p></div>;
   }
@@ -177,6 +120,7 @@ export default function Dashboard() {
       <div className="topbar">
         <div className="user">Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b></div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <a className="btn btn-ghost" href="/profil">Min profil</a>
           <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
           {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
           <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
@@ -189,11 +133,22 @@ export default function Dashboard() {
         <p className="subhead">Välj ett spel — fler kategorier och listor läggs till löpande.</p>
       </header>
 
+      {/* ---- Kompakt genväg om man är med i en liga ---- */}
+      {activeLeagues.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
+          {activeLeagues.map(l => (
+            <a key={l.id} href="/profil" className="stat" style={{ textDecoration: 'none', color: 'var(--text)' }}>
+              🏆 {l.name}
+            </a>
+          ))}
+        </div>
+      )}
+
       {/* ---- Dagens utmaning ---- */}
       {todayChallenge && (
         <>
           <div className="cat-title" style={{ marginTop: 30 }}>Dagens utmaning</div>
-          <a
+          
             href={todayChallenge.attempted ? '#' : `/daily/${todayChallenge.id}`}
             className="panel"
             style={{
@@ -222,7 +177,7 @@ export default function Dashboard() {
           </p>
           <div className="list-grid" style={{ marginBottom: 20 }}>
             {missedChallenges.map(c => (
-              <a
+              
                 key={c.id}
                 href={livesRemaining > 0 ? `/daily/${c.id}` : '#'}
                 className="plaque"
@@ -232,75 +187,6 @@ export default function Dashboard() {
                 <span className="tag">{c.weekday} &middot; {c.challenge_date}</span>
                 {livesRemaining > 0 ? 'Missat pass — använd ett liv' : 'Missat pass'}
               </a>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* ---- Ligor ---- */}
-      <div className="cat-title" style={{ marginTop: 34 }}>Mina privata ligor</div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-        <button className="plaque" style={{ flex: '1 1 160px', textAlign: 'center' }} onClick={() => { setShowCreate(s => !s); setShowJoin(false); setLeagueMsg(''); }}>
-          + Skapa liga
-        </button>
-        <button className="plaque" style={{ flex: '1 1 160px', textAlign: 'center' }} onClick={() => { setShowJoin(s => !s); setShowCreate(false); setLeagueMsg(''); }}>
-          Gå med med kod
-        </button>
-      </div>
-
-      {showCreate && (
-        <form onSubmit={handleCreateLeague} className="panel" style={{ marginBottom: 16 }}>
-          <input
-            className="field"
-            type="text"
-            placeholder="Namn på ligan, t.ex. Kontoret Fredagsfika"
-            value={leagueName}
-            onChange={e => setLeagueName(e.target.value)}
-          />
-          <button className="btn btn-primary" type="submit">Skicka för godkännande</button>
-        </form>
-      )}
-      {showJoin && (
-        <form onSubmit={handleJoinLeague} className="panel" style={{ marginBottom: 16 }}>
-          <input
-            className="field"
-            type="text"
-            placeholder="Kod, t.ex. N57R6Y"
-            value={joinCode}
-            onChange={e => setJoinCode(e.target.value)}
-            style={{ textTransform: 'uppercase' }}
-          />
-          <button className="btn btn-primary" type="submit">Gå med</button>
-        </form>
-      )}
-      {leagueMsg && <div className="toast" style={{ marginBottom: 10 }}>{leagueMsg}</div>}
-
-      {pendingLeagues.length > 0 && (
-        <>
-          <div className="subhead" style={{ marginBottom: 8 }}>Väntar på godkännande ({pendingLeagues.length})</div>
-          <div className="list-grid" style={{ marginBottom: 18 }}>
-            {pendingLeagues.map(l => (
-              <div key={l.id} className="plaque" style={{ cursor: 'default' }}>
-                <span className="tag">Väntar</span>
-                {l.name}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      {activeLeagues.length > 0 && (
-        <>
-          <div className="subhead" style={{ marginBottom: 8 }}>Aktiva grupper ({activeLeagues.length})</div>
-          <div className="list-grid" style={{ marginBottom: 10 }}>
-            {activeLeagues.map(l => (
-              <div key={l.id} className="plaque" style={{ cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>
-                  <span className="tag">Aktiv</span>
-                  {l.name}
-                </span>
-                <span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--amber-glow)' }}>{l.invite_code}</span>
-              </div>
             ))}
           </div>
         </>
@@ -331,7 +217,9 @@ export default function Dashboard() {
         );
       })}
 
-      <footer className="site">Fler listor på gång — samma spel, nya frågor.</footer>
+      <footer className="site">
+        Vill du skapa eller gå med i en liga? Det gör du under <a href="/profil">Min profil</a>.
+      </footer>
     </div>
   );
 }
