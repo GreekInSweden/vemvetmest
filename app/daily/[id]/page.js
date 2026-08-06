@@ -404,13 +404,24 @@ export default function DailyPlayPage() {
           </div>
         )}
         {list.guess_mode === 'strict_order' && (
-          <div style={{ display: 'inline-block', background: 'var(--amber)', color: '#241505', fontFamily: "'Oswald', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', padding: '3px 9px', borderRadius: 3, marginBottom: 12 }}>
-            🔢 Måste gissas i rätt ordning
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            background: 'var(--amber)', color: '#241505',
+            fontFamily: "'Oswald', sans-serif", fontSize: 12.5, fontWeight: 700,
+            letterSpacing: '.04em', textTransform: 'uppercase',
+            padding: '7px 14px', borderRadius: 4, marginBottom: 14
+          }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 18, height: 18, borderRadius: '50%', background: '#241505',
+              color: 'var(--amber)', fontSize: 11, fontWeight: 700, flexShrink: 0
+            }}>!</span>
+            Rätt ordning krävs — gissa svar #1 först, sen i tur och ordning
           </div>
         )}
         {list.guess_mode === 'multi_fill' && (
           <div className="subhead" style={{ marginBottom: 12, fontStyle: 'italic' }}>
-            💡 Ett namn kan ge flera träffar på en gång om det förekommer flera gånger i listan.
+            Ett namn kan ge flera träffar på en gång om det förekommer flera gånger i listan.
           </div>
         )}
 
