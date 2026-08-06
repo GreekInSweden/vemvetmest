@@ -246,7 +246,7 @@ export default function PlayPage() {
           </div>
         )}
 
-        <div className="board-list" style={{ marginTop: 18 }}>
+        <div className="board-list" style={{ marginTop: 10 }}>
           {items.map(item => {
             const isGuessed = guessedRanks.has(item.rank);
             const isRevealedByEnd = finished && !isGuessed;
