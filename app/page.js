@@ -115,6 +115,7 @@ export default function Dashboard() {
       const { data: gameLists } = await supabase
         .from('game_lists')
         .select('id, slug, title, subtitle, category_id')
+        .eq('featured', true)
         .order('sort_order');
 
       setCategories(cats || []);
@@ -307,6 +308,11 @@ export default function Dashboard() {
 
       {/* ---- Spel (fritt spelbara övningslistor) ---- */}
       <div className="cat-title" style={{ marginTop: 30 }}>Övningsspel</div>
+      {lists.length === 0 && (
+        <p className="subhead" style={{ marginBottom: 20 }}>
+          Inga övningsspel är valda att synas just nu.
+        </p>
+      )}
       {categories.map(cat => {
         const catLists = lists.filter(l => l.category_id === cat.id);
         if (catLists.length === 0) return null;
