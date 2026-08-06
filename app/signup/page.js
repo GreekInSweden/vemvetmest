@@ -55,7 +55,7 @@ export default function SignupPage() {
 
   return (
     <div className="wrap" style={{ maxWidth: 420, paddingTop: 60 }}>
-      <div className="eyebrow">Ranglistan</div>
+      <div className="eyebrow">Kan Du Alla</div>
       <h1 className="brand" style={{ fontSize: 32 }}>Skapa konto</h1>
       <p className="subhead" style={{ marginBottom: 22 }}>Bara ett användarnamn och ett lösenord — inget mejl krävs.</p>
 
