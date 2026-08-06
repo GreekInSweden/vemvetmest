@@ -1,9 +1,9 @@
 'use client';
-
+ 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
-
+ 
 function stockholmNow() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Stockholm' }));
 }
@@ -11,7 +11,7 @@ function ymd(d) {
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
-
+ 
 export default function Dashboard() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -20,32 +20,32 @@ export default function Dashboard() {
   const [lists, setLists] = useState([]);
   const [activeLeagues, setActiveLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
-
+ 
   const [todayChallenge, setTodayChallenge] = useState(null);
   const [missedChallenges, setMissedChallenges] = useState([]);
   const [livesRemaining, setLivesRemaining] = useState(5);
   const [isWeekend, setIsWeekend] = useState(false);
-
+ 
   async function loadDailyChallenges(uid) {
     const now = stockholmNow();
     const isoWeekday = ((now.getDay() + 6) % 7) + 1;
     const todayStr = ymd(now);
     setIsWeekend(isoWeekday === 6 || isoWeekday === 7);
-
+ 
     const monday = new Date(now);
     monday.setDate(now.getDate() - (isoWeekday - 1));
     const mondayStr = ymd(monday);
-
+ 
     const { data: challenges } = await supabase
       .from('daily_challenges')
       .select('id, challenge_date, weekday')
       .gte('challenge_date', mondayStr)
       .lte('challenge_date', todayStr)
       .order('challenge_date');
-
+ 
     const rows = challenges || [];
     const ids = rows.map(c => c.id);
-
+ 
     let attemptedIds = new Set();
     if (ids.length) {
       const { data: attempts } = await supabase
@@ -55,11 +55,11 @@ export default function Dashboard() {
         .in('daily_challenge_id', ids);
       attemptedIds = new Set((attempts || []).map(a => a.daily_challenge_id));
     }
-
+ 
     const today = rows.find(c => c.challenge_date === todayStr);
     setTodayChallenge(today ? { ...today, attempted: attemptedIds.has(today.id) } : null);
     setMissedChallenges(rows.filter(c => c.challenge_date !== todayStr && !attemptedIds.has(c.id)));
-
+ 
     const yearStart = `${now.getFullYear()}-01-01`;
     const { count } = await supabase
       .from('daily_attempts')
@@ -69,13 +69,13 @@ export default function Dashboard() {
       .gte('created_at', yearStart);
     setLivesRemaining(Math.max(0, 5 - (count || 0)));
   }
-
+ 
   useEffect(() => {
     async function load() {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) { router.push('/login'); return; }
       const uid = sessionData.session.user.id;
-
+ 
       const { data: profile } = await supabase
         .from('profiles')
         .select('username, is_admin')
@@ -83,7 +83,7 @@ export default function Dashboard() {
         .single();
       setUsername(profile?.username || '');
       setIsAdmin(!!profile?.is_admin);
-
+ 
       const { data: cats } = await supabase.from('categories').select('*').order('sort_order');
       const { data: gameLists } = await supabase
         .from('game_lists')
@@ -92,29 +92,29 @@ export default function Dashboard() {
         .order('sort_order');
       setCategories(cats || []);
       setLists(gameLists || []);
-
+ 
       const { data: memberships } = await supabase
         .from('league_members')
         .select('leagues(id, name, status, invite_code)')
         .eq('user_id', uid);
       const rows = (memberships || []).map(m => m.leagues).filter(Boolean);
       setActiveLeagues(rows.filter(l => l.status === 'approved'));
-
+ 
       await loadDailyChallenges(uid);
       setLoading(false);
     }
     load();
   }, [router]);
-
+ 
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push('/login');
   }
-
+ 
   if (loading) {
     return <div className="wrap"><p className="subhead">Laddar…</p></div>;
   }
-
+ 
   return (
     <div className="wrap">
       <div className="topbar">
@@ -126,13 +126,13 @@ export default function Dashboard() {
           <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
         </div>
       </div>
-
+ 
       <header style={{ textAlign: 'center', marginBottom: 10 }}>
         <div className="eyebrow">Skriv &middot; Gissa &middot; Fyll listan</div>
         <h1 className="brand">Ranglistan</h1>
         <p className="subhead">Välj ett spel — fler kategorier och listor läggs till löpande.</p>
       </header>
-
+ 
       {/* ---- Kompakt genväg om man är med i en liga ---- */}
       {activeLeagues.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
@@ -143,12 +143,12 @@ export default function Dashboard() {
           ))}
         </div>
       )}
-
+ 
       {/* ---- Dagens utmaning ---- */}
       {todayChallenge && (
         <>
           <div className="cat-title" style={{ marginTop: 30 }}>Dagens utmaning</div>
-          
+          <a
             href={todayChallenge.attempted ? '#' : `/daily/${todayChallenge.id}`}
             className="panel"
             style={{
@@ -167,7 +167,7 @@ export default function Dashboard() {
           </a>
         </>
       )}
-
+ 
       {/* ---- Missade pass (bara helg) ---- */}
       {isWeekend && missedChallenges.length > 0 && (
         <>
@@ -177,7 +177,7 @@ export default function Dashboard() {
           </p>
           <div className="list-grid" style={{ marginBottom: 20 }}>
             {missedChallenges.map(c => (
-              
+              <a
                 key={c.id}
                 href={livesRemaining > 0 ? `/daily/${c.id}` : '#'}
                 className="plaque"
@@ -191,7 +191,7 @@ export default function Dashboard() {
           </div>
         </>
       )}
-
+ 
       {/* ---- Spel (fritt spelbara övningslistor) ---- */}
       <div className="cat-title" style={{ marginTop: 30 }}>Övningsspel</div>
       {lists.length === 0 && (
@@ -216,7 +216,7 @@ export default function Dashboard() {
           </div>
         );
       })}
-
+ 
       <footer className="site">
         Vill du skapa eller gå med i en liga? Det gör du under <a href="/profil">Min profil</a>.
       </footer>
