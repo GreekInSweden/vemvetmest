@@ -22,6 +22,33 @@ export default function ProfilePage() {
   const [leagueMsg, setLeagueMsg] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const [familyPlan, setFamilyPlan] = useState(null); // { invite_code, isOwner, memberCount }
+  const [familyCode, setFamilyCode] = useState('');
+  const [familyMsg, setFamilyMsg] = useState('');
+  const [showFamilyJoin, setShowFamilyJoin] = useState(false);
+
+  async function loadFamilyPlan(uid) {
+    const { data: membership } = await supabase
+      .from('family_plan_members')
+      .select('family_plan_id, family_plans(id, owner_id, invite_code, max_members)')
+      .eq('user_id', uid)
+      .maybeSingle();
+
+    if (!membership?.family_plans) { setFamilyPlan(null); return; }
+
+    const { count } = await supabase
+      .from('family_plan_members')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('family_plan_id', membership.family_plans.id);
+
+    setFamilyPlan({
+      inviteCode: membership.family_plans.invite_code,
+      isOwner: membership.family_plans.owner_id === uid,
+      memberCount: count || 1,
+      maxMembers: membership.family_plans.max_members
+    });
+  }
+
   async function loadLeagues(uid) {
     const { data: memberships } = await supabase
       .from('league_members')
@@ -48,6 +75,7 @@ export default function ProfilePage() {
       setAvatarUrl(profile?.avatar_url || null);
 
       await loadLeagues(uid);
+      await loadFamilyPlan(uid);
       setLoading(false);
     }
     load();
@@ -126,6 +154,22 @@ export default function ProfilePage() {
     setShowJoin(false);
     setLeagueMsg(`Du gick med i "${data?.[0]?.league_name || 'ligan'}"!`);
     await loadLeagues(userId);
+  }
+
+  async function handleJoinFamilyPlan(e) {
+    e.preventDefault();
+    setFamilyMsg('');
+    const code = familyCode.trim();
+    if (!code) return;
+    const { error } = await supabase.rpc('join_family_plan', { p_code: code });
+    if (error) {
+      setFamilyMsg(error.message.includes('full') ? 'Familjeplanen är redan full.' : 'Ogiltig kod.');
+      return;
+    }
+    setFamilyCode('');
+    setShowFamilyJoin(false);
+    setFamilyMsg('Du är nu med i familjeplanen!');
+    await loadFamilyPlan(userId);
   }
 
   if (loading) return <div className="wrap"><p className="subhead">Laddar…</p></div>;
@@ -246,6 +290,48 @@ export default function ProfilePage() {
       {pendingLeagues.length === 0 && activeLeagues.length === 0 && (
         <p className="subhead">Du är inte med i någon liga än.</p>
       )}
+
+      {/* ---- Familjeplan ---- */}
+      <div className="cat-title" style={{ marginTop: 34 }}>Familjeplan</div>
+
+      {familyPlan ? (
+        <div className="plaque" style={{ cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <span>
+            <span className="tag">{familyPlan.isOwner ? 'Ägare' : 'Medlem'}</span>
+            {familyPlan.memberCount} / {familyPlan.maxMembers} platser använda
+          </span>
+          {familyPlan.isOwner && (
+            <span style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--amber-glow)' }}>{familyPlan.inviteCode}</span>
+          )}
+        </div>
+      ) : (
+        <>
+          <p className="subhead" style={{ marginBottom: 10 }}>
+            Du är inte med i någon familjeplan. Har någon i din familj redan köpt en och
+            skickat dig en kod?
+          </p>
+          <button className="plaque" style={{ marginBottom: 10 }} onClick={() => { setShowFamilyJoin(s => !s); setFamilyMsg(''); }}>
+            Lös in familjekod
+          </button>
+          {showFamilyJoin && (
+            <form onSubmit={handleJoinFamilyPlan} className="panel" style={{ marginBottom: 16 }}>
+              <input
+                className="field"
+                type="text"
+                placeholder="Kod, t.ex. N57R6Y"
+                value={familyCode}
+                onChange={e => setFamilyCode(e.target.value)}
+                style={{ textTransform: 'uppercase' }}
+              />
+              <button className="btn btn-primary" type="submit">Gå med</button>
+            </form>
+          )}
+          <p className="subhead" style={{ fontSize: 12.5 }}>
+            Ingen egen familjeplan än? Läs mer på <a href="/prenumerera">prenumerationssidan</a>.
+          </p>
+        </>
+      )}
+      {familyMsg && <div className="toast" style={{ marginTop: 4 }}>{familyMsg}</div>}
     </div>
   );
 }
