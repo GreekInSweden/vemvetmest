@@ -14,6 +14,7 @@ function ymd(d) {
 
 export default function Dashboard() {
   const router = useRouter();
+  const [loggedIn, setLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -75,7 +76,24 @@ export default function Dashboard() {
   useEffect(() => {
     async function load() {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) { router.push('/login'); return; }
+
+      // Spelen (featured) hämtas alltid, inloggad eller ej - det här är
+      // skyltfönstret som ska sälja in kontot, inte gömmas bakom det.
+      const { data: cats } = await supabase.from('categories').select('*').order('sort_order');
+      const { data: gameLists } = await supabase
+        .from('game_lists')
+        .select('id, slug, title, subtitle, category_id')
+        .eq('featured', true)
+        .order('sort_order');
+      setCategories(cats || []);
+      setLists(gameLists || []);
+
+      if (!sessionData.session) {
+        setLoggedIn(false);
+        setLoading(false);
+        return;
+      }
+      setLoggedIn(true);
       const uid = sessionData.session.user.id;
 
       const { data: profile } = await supabase
@@ -85,15 +103,6 @@ export default function Dashboard() {
         .single();
       setUsername(profile?.username || '');
       setIsAdmin(!!profile?.is_admin);
-
-      const { data: cats } = await supabase.from('categories').select('*').order('sort_order');
-      const { data: gameLists } = await supabase
-        .from('game_lists')
-        .select('id, slug, title, subtitle, category_id')
-        .eq('featured', true)
-        .order('sort_order');
-      setCategories(cats || []);
-      setLists(gameLists || []);
 
       const { data: memberships } = await supabase
         .from('league_members')
@@ -120,18 +129,30 @@ export default function Dashboard() {
   return (
     <div className="wrap">
       <div className="topbar">
-        <div className="user">Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b></div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <a className="btn btn-ghost" href="/profil">Min profil</a>
-          <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
-          {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
-          <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
-        </div>
+        {loggedIn ? (
+          <>
+            <div className="user">Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b></div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <a className="btn btn-ghost" href="/profil">Min profil</a>
+              <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
+              {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
+              <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="user">Testa gratisspelen nedan — inget konto behövs</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <a className="btn btn-ghost" href="/login">Logga in</a>
+              <a className="btn btn-primary" style={{ width: 'auto' }} href="/signup">Skapa konto</a>
+            </div>
+          </>
+        )}
       </div>
 
       <header style={{ textAlign: 'center', marginBottom: 10 }}>
         <div className="eyebrow">Skriv &middot; Gissa &middot; Fyll listan</div>
-        <h1 className="brand">Ranglistan</h1>
+        <h1 className="brand">Kan Du Alla</h1>
         <p className="subhead">Välj ett spel — fler kategorier och listor läggs till löpande.</p>
       </header>
 
@@ -161,7 +182,7 @@ export default function Dashboard() {
       </div>
 
       {/* ---- Kompakt genväg om man är med i en liga ---- */}
-      {activeLeagues.length > 0 && (
+      {loggedIn && activeLeagues.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
           {activeLeagues.map(l => (
             <a key={l.id} href="/profil" className="stat" style={{ textDecoration: 'none', color: 'var(--text)' }}>
@@ -264,7 +285,10 @@ export default function Dashboard() {
       })}
 
       <footer className="site">
-        Vill du skapa eller gå med i en liga? Det gör du under <a href="/profil">Min profil</a>.
+        {loggedIn
+          ? <>Vill du skapa eller gå med i en liga? Det gör du under <a href="/profil">Min profil</a>.</>
+          : <>Redo att tävla på riktigt? <a href="/signup">Skapa ett konto</a> — tar under en minut.</>
+        }
       </footer>
     </div>
   );
