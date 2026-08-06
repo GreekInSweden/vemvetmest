@@ -215,13 +215,21 @@ export default function DailyPlayPage() {
       return;
     }
 
-    const newMatches = matching.filter(item => !guessedRef.current.has(item.rank));
+    const unguessedMatching = matching.filter(item => !guessedRef.current.has(item.rank));
 
-    if (newMatches.length === 0) {
+    if (unguessedMatching.length === 0) {
       showToast('Redan gissat: ' + matching[0].name);
       setGuess('');
       return;
     }
+
+    // Exakta namnträffar (flera rader med samma namn) fylls en i taget;
+    // alias som matchar flera OLIKA namn fylls alla samtidigt.
+    const exactUnguessed = unguessedMatching.filter(item => normalize(item.name) === n);
+    const remainingSameName = exactUnguessed.length > 1 ? exactUnguessed.length - 1 : 0;
+    const newMatches = exactUnguessed.length > 0
+      ? [exactUnguessed.reduce((a, b) => (a.rank < b.rank ? a : b))]
+      : unguessedMatching;
 
     const next = new Set(guessedRef.current);
     newMatches.forEach(item => next.add(item.rank));
@@ -231,6 +239,8 @@ export default function DailyPlayPage() {
 
     if (newMatches.length > 1) {
       showToast(`Rätt! ${newMatches.length} träffar: ` + newMatches.map(m => '#' + m.rank + ' ' + m.name).join(', '));
+    } else if (remainingSameName > 0) {
+      showToast(`Rätt! #${newMatches[0].rank} ${newMatches[0].name} (${remainingSameName} till kvar i listan — gissa igen)`);
     } else {
       showToast('Rätt! #' + newMatches[0].rank + ' ' + newMatches[0].name);
     }
