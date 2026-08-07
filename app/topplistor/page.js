@@ -40,9 +40,10 @@ export default function TopplistorPage() {
   const [challengeRows, setChallengeRows] = useState([]);
   const [challengeLoading, setChallengeLoading] = useState(false);
 
-  async function loadTotals(leagueId) {
+  async function loadTotals(scopeValue) {
     const { data, error } = await supabase.rpc('leaderboard_totals', {
-      p_league_id: leagueId === 'total' ? null : leagueId
+      p_league_id: (scopeValue === 'total' || scopeValue === 'children') ? null : scopeValue,
+      p_children_only: scopeValue === 'children'
     });
     if (!error) setTotals(data || []);
   }
@@ -91,7 +92,8 @@ export default function TopplistorPage() {
     setChallengeLoading(true);
     const { data, error } = await supabase.rpc('leaderboard_for_challenge', {
       p_challenge_id: id,
-      p_league_id: scope === 'total' ? null : scope
+      p_league_id: (scope === 'total' || scope === 'children') ? null : scope,
+      p_children_only: scope === 'children'
     });
     if (!error) setChallengeRows(data || []);
     setChallengeLoading(false);
@@ -125,6 +127,13 @@ export default function TopplistorPage() {
           onClick={() => handleScopeChange('total')}
         >
           Totalt (alla)
+        </button>
+        <button
+          className="plaque"
+          style={{ borderColor: scope === 'children' ? 'var(--amber)' : undefined, color: scope === 'children' ? 'var(--text)' : undefined }}
+          onClick={() => handleScopeChange('children')}
+        >
+          Barn (12 år eller yngre)
         </button>
         {leagues.map(l => (
           <button
