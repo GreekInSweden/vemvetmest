@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { buildSwishLink, swishQrImageUrl, SWISH_NUMBER, PLAN_PRICES } from '../../lib/swish';
+import {
+  buildSwishLink, swishQrImageUrl, SWISH_NUMBER, PLAN_PRICES,
+  COMPANY_PRICE_PER_SEAT, COMPANY_MIN_SEATS
+} from '../../lib/swish';
+
+const TABS = { ...PLAN_PRICES, company: { label: 'Företag' } };
 
 export default function PrenumereraPage() {
   const [plan, setPlan] = useState('yearly');
+  const [seats, setSeats] = useState(COMPANY_MIN_SEATS);
   const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
-  const p = PLAN_PRICES[plan];
 
   useEffect(() => {
     async function load() {
@@ -26,9 +31,13 @@ export default function PrenumereraPage() {
     load();
   }, []);
 
-  const message = username ? `KDA-${username}` : null;
+  const isCompany = plan === 'company';
+  const amount = isCompany ? seats * COMPANY_PRICE_PER_SEAT : PLAN_PRICES[plan].amount;
+  const message = username
+    ? (isCompany ? `KDA-${username}-F${seats}` : `KDA-${username}`)
+    : null;
   const swishLink = message
-    ? buildSwishLink({ payeeNumber: SWISH_NUMBER, amount: p.amount, message, editableMessage: false })
+    ? buildSwishLink({ payeeNumber: SWISH_NUMBER, amount, message, editableMessage: false })
     : null;
 
   return (
@@ -45,13 +54,13 @@ export default function PrenumereraPage() {
         </p>
       </header>
 
-      <div style={{ display: 'flex', gap: 10, maxWidth: 480, margin: '0 auto 20px', justifyContent: 'center' }}>
-        {Object.entries(PLAN_PRICES).map(([key, val]) => (
+      <div style={{ display: 'flex', gap: 8, maxWidth: 560, margin: '0 auto 20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+        {Object.entries(TABS).map(([key, val]) => (
           <button
             key={key}
             className="plaque"
             style={{
-              flex: 1, textAlign: 'center',
+              flex: '1 1 100px', textAlign: 'center',
               borderColor: plan === key ? 'var(--amber)' : undefined,
               color: plan === key ? 'var(--text)' : undefined
             }}
@@ -64,13 +73,36 @@ export default function PrenumereraPage() {
 
       <div className="upgrade-card" style={{ maxWidth: 480, margin: '0 auto 24px', textAlign: 'center' }}>
         {plan === 'family' && <span className="upgrade-badge">4 konton — en på oss</span>}
+        {isCompany && <span className="upgrade-badge">Skalbart för team och företag</span>}
+
+        {isCompany && (
+          <div style={{ marginBottom: 16 }}>
+            <label className="subhead" style={{ display: 'block', marginBottom: 8 }}>Antal konton</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+              <button
+                className="btn btn-ghost" style={{ width: 40, padding: '8px 0' }}
+                onClick={() => setSeats(s => Math.max(COMPANY_MIN_SEATS, s - 1))}
+              >−</button>
+              <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 24, minWidth: 40 }}>{seats}</span>
+              <button
+                className="btn btn-ghost" style={{ width: 40, padding: '8px 0' }}
+                onClick={() => setSeats(s => s + 1)}
+              >+</button>
+            </div>
+            <p className="subhead" style={{ fontSize: 12, marginTop: 6 }}>
+              {COMPANY_PRICE_PER_SEAT} kr per konto och år &middot; {seats} eller fler personer, samma liga
+            </p>
+          </div>
+        )}
+
         <div className="upgrade-price" style={{ fontSize: 44, marginBottom: 4 }}>
-          {p.amount} kr
+          {amount} kr{isCompany && <span style={{ fontSize: 15 }}> / år</span>}
         </div>
         <p className="subhead" style={{ marginBottom: 20 }}>
           {plan === 'monthly' ? 'Gäller i cirka en månad från betalning.' :
            plan === 'yearly' ? 'Gäller i ett helt år från betalning.' :
-           '4 fristående konton i ett helt år. Du blir ägare av familjeplanen och får en kod att dela.'}
+           plan === 'family' ? '4 fristående konton i ett helt år. Du blir ägare av familjeplanen och får en kod att dela.' :
+           `${seats} fristående konton i ett helt år, samlade i en egen privat liga med gemensam topplista.`}
         </p>
 
         {loading ? (
