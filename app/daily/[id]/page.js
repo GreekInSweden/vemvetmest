@@ -107,7 +107,12 @@ export default function DailyPlayPage() {
       const uid = sessionData.session.user.id;
       setUserId(uid);
 
-      const { data: profile } = await supabase.from('profiles').select('difficulty').eq('id', uid).single();
+      const { data: profile } = await supabase.from('profiles').select('difficulty, paid_until').eq('id', uid).single();
+      const todayForPayment = ymd(stockholmNow());
+      if (!profile?.paid_until || profile.paid_until < todayForPayment) {
+        setEligibility({ ok: false, reason: 'Dagens utmaning kräver ett betalt medlemskap.', needsPayment: true });
+        return;
+      }
       const diff = profile?.difficulty || 'hard';
       setDifficulty(diff);
       difficultyRef.current = diff;
@@ -384,6 +389,22 @@ export default function DailyPlayPage() {
             Redan spelat! Du fick {alreadyPlayed.guessed} av {alreadyPlayed.total} på {formatTime(alreadyPlayed.seconds)}
             {alreadyPlayed.used_life ? ' (med ett liv)' : ''}.
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (eligibility && !eligibility.ok && eligibility.needsPayment) {
+    return (
+      <div className="wrap">
+        <div className="topbar"><a className="btn btn-ghost" href="/">&larr; Alla spel</a></div>
+        <div className="upgrade-card">
+          <span className="upgrade-badge">Kräver medlemskap</span>
+          <div className="upgrade-title">Lås upp Dagens Utmaning</div>
+          <p className="subhead" style={{ marginBottom: 18 }}>{eligibility.reason}</p>
+          <a href="/prenumerera" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
+            Bli medlem →
+          </a>
         </div>
       </div>
     );
