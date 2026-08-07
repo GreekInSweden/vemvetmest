@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
+import { PLAN_PRICES } from '../../lib/swish';
+
 export default function AdminPage() {
   const router = useRouter();
   const [isAdmin, setIsAdmin] = useState(null);
@@ -17,6 +19,11 @@ export default function AdminPage() {
   const [checked, setChecked] = useState(new Set());
   const [gamesMsg, setGamesMsg] = useState('');
   const [savingGames, setSavingGames] = useState(false);
+
+  const [paymentSearch, setPaymentSearch] = useState('');
+  const [paymentResults, setPaymentResults] = useState([]);
+  const [paymentSearching, setPaymentSearching] = useState(false);
+  const [paymentMsg, setPaymentMsg] = useState('');
 
   async function load() {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -134,6 +141,56 @@ export default function AdminPage() {
     setGamesMsg(`"${title}" borttaget.`);
   }
 
+  async function searchPayments(e) {
+    e.preventDefault();
+    setPaymentMsg('');
+    const term = paymentSearch.trim();
+    if (!term) { setPaymentResults([]); return; }
+    setPaymentSearching(true);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, username, paid_until, is_child')
+      .ilike('username', `%${term}%`)
+      .limit(20);
+    setPaymentSearching(false);
+    if (error) {
+      setPaymentMsg('Sökning misslyckades: ' + error.message);
+      return;
+    }
+    setPaymentResults(data || []);
+  }
+
+  async function markPaid(userId, planKey) {
+    setPaymentMsg('');
+    const days = PLAN_PRICES[planKey].days;
+    const paidUntil = new Date();
+    paidUntil.setDate(paidUntil.getDate() + days);
+    const paidUntilStr = paidUntil.toISOString().slice(0, 10);
+
+    const { error } = await supabase.from('profiles').update({ paid_until: paidUntilStr }).eq('id', userId);
+    if (error) {
+      setPaymentMsg('Kunde inte markera betald: ' + error.message);
+      return;
+    }
+
+    if (planKey === 'family') {
+      const { data: existing } = await supabase
+        .from('family_plans')
+        .select('id')
+        .eq('owner_id', userId)
+        .maybeSingle();
+      if (!existing) {
+        const { error: famError } = await supabase.from('family_plans').insert({ owner_id: userId });
+        if (famError) {
+          setPaymentMsg('Betald markerad, men kunde inte skapa familjeplan: ' + famError.message);
+        }
+      }
+    }
+
+    setPaymentResults(prev => prev.map(p => p.id === userId ? { ...p, paid_until: paidUntilStr } : p));
+    setPaymentMsg(`Markerad betald till och med ${paidUntilStr}.`);
+  }
+
   if (loading) return <div className="wrap"><p className="subhead">Laddar…</p></div>;
 
   if (isAdmin === false) {
@@ -153,10 +210,54 @@ export default function AdminPage() {
 
       <header style={{ marginBottom: 20 }}>
         <div className="eyebrow">Adminpanel</div>
-        <h1 className="brand" style={{ fontSize: 32 }}>Godkänn ligor</h1>
+        <h1 className="brand" style={{ fontSize: 32 }}>Kan Du Alla</h1>
       </header>
 
       {msg && <div className="error-msg">{msg}</div>}
+
+      {/* ---- Betalningar ---- */}
+      <div className="cat-title" style={{ marginTop: 0 }}>Markera betalning</div>
+
+      <form onSubmit={searchPayments} className="input-row" style={{ marginBottom: 12 }}>
+        <input
+          className="field"
+          type="text"
+          placeholder="Sök på användarnamn…"
+          value={paymentSearch}
+          onChange={e => setPaymentSearch(e.target.value)}
+        />
+        <button className="btn btn-primary" style={{ width: 'auto' }} type="submit" disabled={paymentSearching}>
+          {paymentSearching ? 'Söker…' : 'Sök'}
+        </button>
+      </form>
+      {paymentMsg && <div className="toast" style={{ marginBottom: 10 }}>{paymentMsg}</div>}
+
+      {paymentResults.map(u => {
+        const isActive = u.paid_until && u.paid_until >= new Date().toISOString().slice(0, 10);
+        return (
+          <div key={u.id} className="panel" style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 16, textTransform: 'uppercase' }}>
+                {u.username} {u.is_child && <span className="tag" style={{ marginLeft: 6 }}>Barn</span>}
+              </div>
+              <div className="subhead" style={{ fontSize: 12.5 }}>
+                {u.paid_until
+                  ? (isActive ? `Betald t.o.m. ${u.paid_until}` : `Gick ut ${u.paid_until}`)
+                  : 'Har aldrig betalat'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {Object.entries(PLAN_PRICES).map(([key, val]) => (
+                <button key={key} className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => markPaid(u.id, key)}>
+                  {val.label} ({val.amount} kr)
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      <div className="cat-title" style={{ marginTop: 40 }}>Godkänn ligor</div>
 
       <div className="cat-title">Väntar på godkännande ({pending.length})</div>
       {pending.length === 0 && <p className="subhead" style={{ marginBottom: 20 }}>Inga väntande ansökningar.</p>}
