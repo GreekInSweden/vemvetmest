@@ -17,6 +17,7 @@ export default function AdminPage() {
   const [categories, setCategories] = useState([]);
   const [games, setGames] = useState([]);
   const [checked, setChecked] = useState(new Set());
+  const [checkedMember, setCheckedMember] = useState(new Set());
   const [gamesMsg, setGamesMsg] = useState('');
   const [savingGames, setSavingGames] = useState(false);
 
@@ -65,12 +66,13 @@ export default function AdminPage() {
     const { data: cats } = await supabase.from('categories').select('*').order('sort_order');
     const { data: gameLists } = await supabase
       .from('game_lists')
-      .select('id, title, category_id, featured')
+      .select('id, title, category_id, featured, member_exclusive')
       .order('sort_order');
 
     setCategories(cats || []);
     setGames(gameLists || []);
     setChecked(new Set((gameLists || []).filter(g => g.featured).map(g => g.id)));
+    setCheckedMember(new Set((gameLists || []).filter(g => g.member_exclusive).map(g => g.id)));
 
     setLoading(false);
   }
@@ -107,12 +109,22 @@ export default function AdminPage() {
     });
   }
 
+  function toggleMemberGame(id) {
+    setCheckedMember(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
   async function saveGames() {
     setSavingGames(true);
     setGamesMsg('');
     const allIds = games.map(g => g.id);
     const featuredIds = allIds.filter(id => checked.has(id));
     const hiddenIds = allIds.filter(id => !checked.has(id));
+    const memberIds = allIds.filter(id => checkedMember.has(id));
+    const nonMemberIds = allIds.filter(id => !checkedMember.has(id));
 
     if (featuredIds.length > 0) {
       await supabase.from('game_lists').update({ featured: true }).in('id', featuredIds);
@@ -120,9 +132,15 @@ export default function AdminPage() {
     if (hiddenIds.length > 0) {
       await supabase.from('game_lists').update({ featured: false }).in('id', hiddenIds);
     }
+    if (memberIds.length > 0) {
+      await supabase.from('game_lists').update({ member_exclusive: true }).in('id', memberIds);
+    }
+    if (nonMemberIds.length > 0) {
+      await supabase.from('game_lists').update({ member_exclusive: false }).in('id', nonMemberIds);
+    }
     setSavingGames(false);
-    setGamesMsg(`Sparat! ${featuredIds.length} spel syns nu på startsidan.`);
-    setGames(prev => prev.map(g => ({ ...g, featured: checked.has(g.id) })));
+    setGamesMsg(`Sparat! ${featuredIds.length} spel synliga för alla, ${memberIds.length} medlemsspel den här månaden.`);
+    setGames(prev => prev.map(g => ({ ...g, featured: checked.has(g.id), member_exclusive: checkedMember.has(g.id) })));
   }
 
   async function removeGame(id, title) {
@@ -355,10 +373,16 @@ export default function AdminPage() {
       {/* ---- Synliga spel ---- */}
       <header style={{ margin: '40px 0 20px' }}>
         <div className="eyebrow">Adminpanel</div>
-        <h1 className="brand" style={{ fontSize: 28 }}>Välj synliga spel</h1>
+        <h1 className="brand" style={{ fontSize: 28 }}>Välj synliga och medlemsspel</h1>
         <p className="subhead">
-          Bockade spel visas under "Övningsspel" på startsidan. Resten ligger dolda i väntan på att
-          slumpas fram som dagens utmaning. Just nu: <b style={{ color: 'var(--amber-glow)' }}>{checked.size}</b> markerade.
+          <b style={{ color: 'var(--amber-glow)' }}>Synligt</b> = visas för alla på startsidan, även utan konto.{' '}
+          <b style={{ color: 'var(--amber-glow)' }}>Medlemsspel</b> = kräver inloggning men inget betalt medlemskap,
+          syns aldrig som Dagens utmaning — byt gärna ut dessa varje månad för att ge inloggade-men-ej-betalande
+          en anledning att komma tillbaka.
+        </p>
+        <p className="subhead">
+          Just nu: <b style={{ color: 'var(--amber-glow)' }}>{checked.size}</b> synliga,{' '}
+          <b style={{ color: 'var(--amber-glow)' }}>{checkedMember.size}</b> medlemsspel.
         </p>
       </header>
 
@@ -382,10 +406,10 @@ export default function AdminPage() {
                   className="plaque"
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    borderColor: checked.has(g.id) ? 'var(--amber)' : undefined
+                    borderColor: checked.has(g.id) ? 'var(--amber)' : (checkedMember.has(g.id) ? '#5b8fd6' : undefined)
                   }}
                 >
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', flex: 1 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flex: 1 }} title="Synligt för alla">
                     <input
                       type="checkbox"
                       checked={checked.has(g.id)}
@@ -393,6 +417,14 @@ export default function AdminPage() {
                       style={{ width: 16, height: 16, accentColor: 'var(--amber)' }}
                     />
                     {g.title}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} title="Medlemsspel (kräver konto, inte betalning)">
+                    <input
+                      type="checkbox"
+                      checked={checkedMember.has(g.id)}
+                      onChange={() => toggleMemberGame(g.id)}
+                      style={{ width: 16, height: 16, accentColor: '#5b8fd6' }}
+                    />
                   </label>
                   <button
                     onClick={() => removeGame(g.id, g.title)}
