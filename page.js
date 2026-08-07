@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [categories, setCategories] = useState([]);
   const [lists, setLists] = useState([]);
+  const [memberLists, setMemberLists] = useState([]);
   const [activeLeagues, setActiveLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -97,6 +98,13 @@ export default function Dashboard() {
       }
       setLoggedIn(true);
       const uid = sessionData.session.user.id;
+
+      const { data: memberGames } = await supabase
+        .from('game_lists')
+        .select('id, slug, title, subtitle, category_id')
+        .eq('member_exclusive', true)
+        .order('sort_order');
+      setMemberLists(memberGames || []);
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -281,6 +289,26 @@ export default function Dashboard() {
           </div>
         );
       })}
+
+      {/* ==== MEDLEMSSPEL: gratis men kräver konto, roterar månadsvis ==== */}
+      {loggedIn && memberLists.length > 0 && (
+        <>
+          <div className="cat-title" style={{ marginTop: 30, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: '#7ba7e0' }}>Medlemsspel — den här månaden</span>
+          </div>
+          <p className="subhead" style={{ marginBottom: 12 }}>
+            Gratis eftersom du har ett konto, men bara tillgängliga en begränsad tid — byts ut nästa månad.
+          </p>
+          <div className="list-grid" style={{ marginBottom: 10 }}>
+            {memberLists.map(l => (
+              <a key={l.id} className="plaque" href={`/play/${l.slug}`} style={{ borderColor: '#5b8fd6' }}>
+                <span className="tag" style={{ background: '#243449', color: '#9ab8e6' }}>Medlemsspel</span>
+                {l.title}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* ==== EJ BETALANDE MEDLEMMAR: säljande CTA EFTER att de sett spelen ==== */}
       {!(loggedIn && isPaidActive) && (
