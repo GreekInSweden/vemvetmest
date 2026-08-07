@@ -181,9 +181,9 @@ export default function PlayPage() {
 
     const elapsed = timeLimitRef.current - (reason === 'timeout' ? 0 : secondsLeft);
 
-    if (userId && list) {
+    if (list) {
       await supabase.from('results').insert({
-        user_id: userId,
+        user_id: userId || null,
         list_id: list.id,
         guessed: guessedRef.current.size,
         total: items.length,
