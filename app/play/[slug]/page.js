@@ -380,7 +380,8 @@ export default function PlayPage() {
           {list.title}
         </div>
         <div className="subhead" style={{ marginBottom: 6 }}>
-          {list.subtitle} — {list.source}
+          {list.subtitle}
+          {finished && list.source && <> — {list.source}</>}
         </div>
         {list.guess_mode === 'strict_order' && (
           <div style={{
