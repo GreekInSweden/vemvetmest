@@ -1,34 +1,35 @@
 'use client';
 
-import { useState } from 'react';
-
-const PLANS = {
-  monthly: {
-    label: 'Månadsvis',
-    price: '29 kr',
-    unit: ' / månad',
-    badge: null,
-    note: 'Avsluta när du vill. Inga bindningstider.',
-  },
-  yearly: {
-    label: 'Helår',
-    price: '299 kr',
-    unit: ' / år',
-    badge: 'Bäst värde för en',
-    note: 'Betala en gång, spela hela året.',
-  },
-  family: {
-    label: 'Familj',
-    price: '897 kr',
-    unit: ' / år',
-    badge: '4 konton — en på oss',
-    note: '897 kr är exakt vad 3 helårskonton kostar. Det fjärde följer med.',
-  },
-};
+import { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabaseClient';
+import { buildSwishLink, swishQrImageUrl, SWISH_NUMBER, PLAN_PRICES } from '../../lib/swish';
 
 export default function PrenumereraPage() {
   const [plan, setPlan] = useState('yearly');
-  const p = PLANS[plan];
+  const [username, setUsername] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const p = PLAN_PRICES[plan];
+
+  useEffect(() => {
+    async function load() {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', sessionData.session.user.id)
+          .single();
+        setUsername(profile?.username || null);
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const message = username ? `KDA-${username}` : null;
+  const swishLink = message
+    ? buildSwishLink({ payeeNumber: SWISH_NUMBER, amount: p.amount, message, editableMessage: false })
+    : null;
 
   return (
     <div className="wrap">
@@ -45,7 +46,7 @@ export default function PrenumereraPage() {
       </header>
 
       <div style={{ display: 'flex', gap: 10, maxWidth: 480, margin: '0 auto 20px', justifyContent: 'center' }}>
-        {Object.entries(PLANS).map(([key, val]) => (
+        {Object.entries(PLAN_PRICES).map(([key, val]) => (
           <button
             key={key}
             className="plaque"
@@ -61,53 +62,52 @@ export default function PrenumereraPage() {
         ))}
       </div>
 
-      <div className="upgrade-card" style={{ maxWidth: 480, margin: '0 auto 24px' }}>
-        {p.badge && <span className="upgrade-badge">{p.badge}</span>}
+      <div className="upgrade-card" style={{ maxWidth: 480, margin: '0 auto 24px', textAlign: 'center' }}>
+        {plan === 'family' && <span className="upgrade-badge">4 konton — en på oss</span>}
         <div className="upgrade-price" style={{ fontSize: 44, marginBottom: 4 }}>
-          {p.price}<span style={{ fontSize: 15 }}>{p.unit}</span>
+          {p.amount} kr
         </div>
-        <p className="subhead" style={{ marginBottom: 20 }}>{p.note}</p>
+        <p className="subhead" style={{ marginBottom: 20 }}>
+          {plan === 'monthly' ? 'Gäller i cirka en månad från betalning.' :
+           plan === 'yearly' ? 'Gäller i ett helt år från betalning.' :
+           '4 fristående konton i ett helt år. Du blir ägare av familjeplanen och får en kod att dela.'}
+        </p>
 
-        {plan === 'family' ? (
+        {loading ? (
+          <p className="subhead">Laddar…</p>
+        ) : !username ? (
           <>
-            <ul className="upgrade-perks" style={{ marginBottom: 18 }}>
-              <li>✓ <b>4 fristående konton</b>, allt du betalar för är detta enda köp</li>
-              <li>✓ Samma <b>29 perks</b> som helårsplanen, för alla fyra</li>
-              <li>✓ Perfekt för en familj eller en fast vängrupp som redan spelar ihop</li>
-            </ul>
-            <div className="panel" style={{ background: 'var(--bg-2)', marginBottom: 22, padding: '14px 16px' }}>
-              <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 13, textTransform: 'uppercase', color: 'var(--amber-glow)', marginBottom: 6 }}>
-                Så funkar det
-              </div>
-              <p className="subhead" style={{ margin: 0, fontSize: 13 }}>
-                Du betalar en gång och blir ägare av familjeplanen. Precis som med en privat liga
-                får du en <b>6-teckens kod</b> att skicka till de tre andra — de skriver in koden
-                under sin profil och är igång direkt. Ingen av dem behöver betala något.
-              </p>
-            </div>
+            <p className="subhead" style={{ marginBottom: 14 }}>
+              Du måste vara inloggad för att få din personliga betalningskod.
+            </p>
+            <a className="btn btn-primary" href="/login" style={{ width: 'auto', padding: '13px 26px' }}>
+              Logga in
+            </a>
           </>
         ) : (
-          <ul className="upgrade-perks" style={{ marginBottom: 22 }}>
-            <li>✓ <b>Dagens utmaning</b> varje måndag och onsdag</li>
-            <li>✓ Ämnet dolt fram till du klickar in, rättvist för alla</li>
-            <li>✓ <b>5 liv om året</b> — fredagar är sista chansen att ta igen missade pass</li>
-            <li>✓ Lördagar avslöjas veckans resultat i topplistan</li>
-            <li>✓ Skapa eller gå med i <b>privata ligor</b> med kollegor och vänner</li>
-            <li>✓ <b>Topplistor</b> — totalt, per liga och per omgång</li>
-            <li>✓ Ständigt växande bank av övningsspel</li>
-          </ul>
+          <>
+            <div style={{
+              background: '#fff', display: 'inline-block', padding: 16, borderRadius: 8, marginBottom: 16
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={swishQrImageUrl(swishLink)} alt="Swish QR-kod" width={240} height={240} />
+            </div>
+            <p className="subhead" style={{ marginBottom: 4 }}>
+              Skanna med Swish-appen. Belopp och meddelande (<b style={{ color: 'var(--amber-glow)' }}>{message}</b>) är redan ifyllda.
+            </p>
+            <p className="subhead" style={{ fontSize: 12, marginBottom: 18 }}>
+              På mobilen? <a href={swishLink}>Tryck här istället för att skanna</a>.
+            </p>
+            <p className="subhead" style={{ fontSize: 12.5, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
+              När betalningen har registrerats aktiveras ditt konto manuellt inom kort — det här är
+              i uppstartsläge inget som sker automatiskt än.
+            </p>
+          </>
         )}
-
-        <button className="btn btn-primary" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
-          Betalning öppnar snart
-        </button>
-        <p className="subhead" style={{ fontSize: 12, marginTop: 10, marginBottom: 0, textAlign: 'center' }}>
-          Vi kopplar in betalningen inom kort. Under tiden är övningsspelen och Dagens utmaning öppna för alla.
-        </p>
       </div>
 
       <p className="subhead" style={{ textAlign: 'center', maxWidth: 420, margin: '0 auto' }}>
-        Har du frågor eller vill vara med bland de första? Hör av dig till oss.
+        Har du frågor? Hör av dig till oss.
       </p>
     </div>
   );
