@@ -52,9 +52,9 @@ export async function GET(request) {
   const { data: lists, error: listsError } = await supabase
     .from('game_lists')
     .select('id')
-    .eq('member_exclusive', false);
+    .eq('daily_pool', true);
   if (listsError || !lists || lists.length === 0) {
-    return Response.json({ error: 'no game_lists found' }, { status: 500 });
+    return Response.json({ error: 'no game_lists in daily_pool' }, { status: 500 });
   }
 
   const { data: usedRows } = await supabase.from('daily_challenges').select('list_id');
