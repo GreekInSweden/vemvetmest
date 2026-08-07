@@ -49,7 +49,10 @@ export async function GET(request) {
     return Response.json({ skipped: true, reason: 'already exists for today', today });
   }
 
-  const { data: lists, error: listsError } = await supabase.from('game_lists').select('id');
+  const { data: lists, error: listsError } = await supabase
+    .from('game_lists')
+    .select('id')
+    .eq('member_exclusive', false);
   if (listsError || !lists || lists.length === 0) {
     return Response.json({ error: 'no game_lists found' }, { status: 500 });
   }
