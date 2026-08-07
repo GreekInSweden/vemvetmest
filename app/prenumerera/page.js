@@ -1,19 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import QRCode from 'qrcode';
 import { supabase } from '../../lib/supabaseClient';
 import {
-  buildSwishLink, swishQrImageUrl, SWISH_NUMBER, PLAN_PRICES,
+  buildSwishLink, SWISH_NUMBER, PLAN_PRICES,
   COMPANY_PRICE_PER_SEAT, COMPANY_MIN_SEATS
 } from '../../lib/swish';
 
 const TABS = { ...PLAN_PRICES, company: { label: 'Företag' } };
+const QR_SIZE = 260;
 
 export default function PrenumereraPage() {
   const [plan, setPlan] = useState('yearly');
   const [seats, setSeats] = useState(COMPANY_MIN_SEATS);
   const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
+  const canvasRef = useRef(null);
+  const [qrError, setQrError] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -36,11 +40,24 @@ export default function PrenumereraPage() {
   const message = username
     ? (isCompany ? `KDA-${username}-F${seats}` : `KDA-${username}`)
     : null;
-  // Både belopp och meddelande låsta (editableFields tom) - ingen ska
-  // kunna ändra vare sig summan eller vem betalningen tillhör.
   const swishLink = message
     ? buildSwishLink({ payeeNumber: SWISH_NUMBER, amount, message, editableFields: [] })
     : null;
+
+  // Ritar QR-koden direkt på en <canvas> med biblioteket "qrcode" - ingen
+  // extern bildtjänst inblandad, så det finns inget mellanled som kan
+  // skala om eller på annat sätt förändra bilden efter att den skapats.
+  useEffect(() => {
+    if (!swishLink || !canvasRef.current) return;
+    setQrError('');
+    QRCode.toCanvas(canvasRef.current, swishLink, {
+      width: QR_SIZE,
+      margin: 4,
+      errorCorrectionLevel: 'M'
+    }, (err) => {
+      if (err) setQrError('Kunde inte rita QR-koden: ' + err.message);
+    });
+  }, [swishLink]);
 
   return (
     <div className="wrap">
@@ -121,10 +138,11 @@ export default function PrenumereraPage() {
         ) : (
           <>
             <div style={{
-              background: '#fff', display: 'inline-block', padding: 16, borderRadius: 8, marginBottom: 16
+              background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              padding: 16, borderRadius: 8, marginBottom: 16, minWidth: QR_SIZE, minHeight: QR_SIZE
             }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={swishQrImageUrl(swishLink)} alt="Swish QR-kod" width={240} height={240} />
+              <canvas ref={canvasRef} width={QR_SIZE} height={QR_SIZE} />
+              {qrError && <p style={{ color: '#b00', fontSize: 13 }}>{qrError}</p>}
             </div>
             <p className="subhead" style={{ marginBottom: 4 }}>
               Skanna med Swish-appen. Belopp och meddelande (<b style={{ color: 'var(--amber-glow)' }}>{message}</b>) är redan ifyllda.
