@@ -14,6 +14,8 @@ export default function ProfilePage() {
   const fileInputRef = useRef(null);
   const [difficulty, setDifficulty] = useState('hard');
   const [difficultyMsg, setDifficultyMsg] = useState('');
+  const [isChild, setIsChild] = useState(false);
+  const [childMsg, setChildMsg] = useState('');
 
   const [pendingLeagues, setPendingLeagues] = useState([]);
   const [activeLeagues, setActiveLeagues] = useState([]);
@@ -70,12 +72,13 @@ export default function ProfilePage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, avatar_url, difficulty')
+        .select('username, avatar_url, difficulty, is_child')
         .eq('id', uid)
         .single();
       setUsername(profile?.username || '');
       setAvatarUrl(profile?.avatar_url || null);
       setDifficulty(profile?.difficulty || 'hard');
+      setIsChild(!!profile?.is_child);
 
       await loadLeagues(uid);
       await loadFamilyPlan(uid);
@@ -133,6 +136,19 @@ export default function ProfilePage() {
       return;
     }
     setDifficultyMsg('Sparat!');
+  }
+
+  async function handleToggleChild() {
+    const next = !isChild;
+    setIsChild(next);
+    setChildMsg('');
+    const { error } = await supabase.from('profiles').update({ is_child: next }).eq('id', userId);
+    if (error) {
+      setChildMsg('Kunde inte spara: ' + error.message);
+      setIsChild(!next);
+      return;
+    }
+    setChildMsg('Sparat!');
   }
 
   async function handleCreateLeague(e) {
@@ -261,6 +277,25 @@ export default function ProfilePage() {
         ))}
       </div>
       {difficultyMsg && <div className="toast" style={{ marginBottom: 10 }}>{difficultyMsg}</div>}
+
+      {/* ---- Barn-flagga ---- */}
+      <div className="cat-title">Ålder</div>
+      <button
+        className="plaque"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6,
+          borderColor: isChild ? 'var(--amber)' : undefined
+        }}
+        onClick={handleToggleChild}
+      >
+        <input type="checkbox" checked={isChild} onChange={() => {}} style={{ width: 16, height: 16, accentColor: 'var(--amber)', pointerEvents: 'none' }} />
+        Jag är 12 år eller yngre
+      </button>
+      <p className="subhead" style={{ marginBottom: 10, fontSize: 12.5 }}>
+        Ger tillgång till en egen topplista bland andra barn i "Topplistor" — man tävlar inte
+        bara mot vuxna i familjen.
+      </p>
+      {childMsg && <div className="toast" style={{ marginBottom: 10 }}>{childMsg}</div>}
 
       {/* ---- Ligor ---- */}
       <div className="cat-title">Mina privata ligor</div>
