@@ -150,6 +150,10 @@ export default function PrenumereraPage() {
             <p className="subhead" style={{ fontSize: 12, marginBottom: 18 }}>
               På mobilen? <a href={swishLink}>Tryck här istället för att skanna</a>.
             </p>
+            <div style={{ background: 'var(--bg-2)', padding: 10, borderRadius: 6, marginBottom: 18, wordBreak: 'break-all', textAlign: 'left' }}>
+              <div className="subhead" style={{ fontSize: 10.5, marginBottom: 4 }}>Felsökning — hela länken:</div>
+              <code style={{ fontSize: 10.5, color: 'var(--muted)' }}>{swishLink}</code>
+            </div>
             <p className="subhead" style={{ fontSize: 12.5, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
               När betalningen har registrerats aktiveras ditt konto manuellt inom kort — det här är
               i uppstartsläge inget som sker automatiskt än.
