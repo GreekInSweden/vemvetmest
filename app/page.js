@@ -16,6 +16,8 @@ export default function Dashboard() {
   const router = useRouter();
   const [loggedIn, setLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
+  const [isPaidActive, setIsPaidActive] = useState(false);
+  const [daysUntilExpiry, setDaysUntilExpiry] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [categories, setCategories] = useState([]);
   const [lists, setLists] = useState([]);
@@ -98,11 +100,20 @@ export default function Dashboard() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, is_admin')
+        .select('username, is_admin, paid_until')
         .eq('id', uid)
         .single();
       setUsername(profile?.username || '');
       setIsAdmin(!!profile?.is_admin);
+
+      const todayStr = ymd(stockholmNow());
+      const paidUntil = profile?.paid_until || null;
+      const active = !!paidUntil && paidUntil >= todayStr;
+      setIsPaidActive(active);
+      if (active) {
+        const daysLeft = Math.round((new Date(paidUntil) - new Date(todayStr)) / 86400000);
+        if (daysLeft <= 5) setDaysUntilExpiry(daysLeft);
+      }
 
       const { data: memberships } = await supabase
         .from('league_members')
@@ -111,7 +122,9 @@ export default function Dashboard() {
       const rows = (memberships || []).map(m => m.leagues).filter(Boolean);
       setActiveLeagues(rows.filter(l => l.status === 'approved'));
 
-      await loadDailyChallenges(uid);
+      if (active) {
+        await loadDailyChallenges(uid);
+      }
       setLoading(false);
     }
     load();
@@ -181,8 +194,18 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ---- Förnyelsepåminnelse ---- */}
+      {loggedIn && isPaidActive && daysUntilExpiry !== null && (
+        <div className="panel" style={{ marginBottom: 16, border: '1px solid var(--amber)' }}>
+          <div className="subhead">
+            Ditt medlemskap går ut om <b style={{ color: 'var(--amber-glow)' }}>{daysUntilExpiry} {daysUntilExpiry === 1 ? 'dag' : 'dagar'}</b>.{' '}
+            <a href="/prenumerera">Förnya här</a> för att inte tappa åtkomsten.
+          </div>
+        </div>
+      )}
+
       {/* ---- Kompakt genväg om man är med i en liga ---- */}
-      {loggedIn && activeLeagues.length > 0 && (
+      {loggedIn && isPaidActive && activeLeagues.length > 0 && (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
           {activeLeagues.map(l => (
             <a key={l.id} href="/profil" className="stat" style={{ textDecoration: 'none', color: 'var(--text)' }}>
@@ -192,7 +215,23 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ---- Dagens utmaning ---- */}
+      {/* ---- Dagens utmaning (kräver betalt medlemskap) ---- */}
+      {loggedIn && !isPaidActive && (
+        <>
+          <div className="cat-title" style={{ marginTop: 30 }}>Dagens utmaning</div>
+          <a
+            href="/prenumerera"
+            className="upgrade-card"
+            style={{ display: 'block', marginBottom: 20, textDecoration: 'none', color: 'inherit', padding: '20px 24px' }}
+          >
+            <span className="upgrade-badge">Kräver medlemskap</span>
+            <div style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 20, color: 'var(--amber-glow)', margin: '6px 0' }}>
+              Lås upp Dagens Utmaning →
+            </div>
+            <div className="subhead">Dagens utmaning, ligor och topplistor kräver ett medlemskap. Tryck här för att betala.</div>
+          </a>
+        </>
+      )}
       {todayChallenge && (
         <>
           <div className="cat-title" style={{ marginTop: 30 }}>Dagens utmaning</div>
