@@ -93,6 +93,7 @@ export default function PlayPage() {
   const [difficulty, setDifficulty] = useState('hard');
   const [hintMsg, setHintMsg] = useState('');
   const difficultyRef = useRef('hard');
+  const [memberLocked, setMemberLocked] = useState(false);
   const inputRef = useRef(null);
   const timerRef = useRef(null);
   const guessedRef = useRef(new Set());
@@ -124,6 +125,13 @@ export default function PlayPage() {
         .single();
       if (!listRow) return;
       setList(listRow);
+
+      // Medlemsspel är gratis men kräver ett konto (inte betalning) -
+      // visa en "logga in"-spärr istället för att ladda in listan.
+      if (listRow.member_exclusive && !uid) {
+        setMemberLocked(true);
+        return;
+      }
 
       const { data: itemRows } = await supabase
         .from('list_items')
@@ -335,6 +343,24 @@ export default function PlayPage() {
     setToast('');
     startTimer();
     setTimeout(() => inputRef.current && inputRef.current.focus(), 0);
+  }
+
+  if (memberLocked) {
+    return (
+      <div className="wrap">
+        <div className="topbar"><a className="btn btn-ghost" href="/">&larr; Alla spel</a></div>
+        <div className="upgrade-card">
+          <span className="upgrade-badge">Gratis medlemsspel</span>
+          <div className="upgrade-title">Skapa ett konto för att spela</div>
+          <p className="subhead" style={{ marginBottom: 18 }}>
+            Det här spelet är gratis, men kräver ett konto — inget betalt medlemskap behövs.
+          </p>
+          <a href="/signup" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
+            Skapa konto (gratis) →
+          </a>
+        </div>
+      </div>
+    );
   }
 
   if (!list) {
