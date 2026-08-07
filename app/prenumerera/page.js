@@ -37,8 +37,13 @@ export default function PrenumereraPage() {
 
   const isCompany = plan === 'company';
   const amount = isCompany ? seats * COMPANY_PRICE_PER_SEAT : PLAN_PRICES[plan].amount;
-  const message = username
-    ? (isCompany ? `KDA-${username}-F${seats}` : `KDA-${username}`)
+  // Swish avvisar länken ("felaktig länk") om meddelandet innehåller
+  // understreck (bekräftat genom test) - byter ut alla tecken som inte
+  // är bokstäver/siffror/bindestreck mot bindestreck för säkerhets skull.
+  // Påverkar bara Swish-meddelandet, inte det riktiga användarnamnet.
+  const safeUsername = username ? username.replace(/[^a-zA-Z0-9-]/g, '-') : null;
+  const message = safeUsername
+    ? (isCompany ? `KDA-${safeUsername}-F${seats}` : `KDA-${safeUsername}`)
     : null;
   const swishLink = message
     ? buildSwishLink({ payeeNumber: SWISH_NUMBER, amount, message, editableFields: [] })
@@ -150,10 +155,6 @@ export default function PrenumereraPage() {
             <p className="subhead" style={{ fontSize: 12, marginBottom: 18 }}>
               På mobilen? <a href={swishLink}>Tryck här istället för att skanna</a>.
             </p>
-            <div style={{ background: 'var(--bg-2)', padding: 10, borderRadius: 6, marginBottom: 18, wordBreak: 'break-all', textAlign: 'left' }}>
-              <div className="subhead" style={{ fontSize: 10.5, marginBottom: 4 }}>Felsökning — hela länken:</div>
-              <code style={{ fontSize: 10.5, color: 'var(--muted)' }}>{swishLink}</code>
-            </div>
             <p className="subhead" style={{ fontSize: 12.5, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
               När betalningen har registrerats aktiveras ditt konto manuellt inom kort — det här är
               i uppstartsläge inget som sker automatiskt än.
