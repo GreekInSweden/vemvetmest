@@ -12,6 +12,8 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState('');
   const fileInputRef = useRef(null);
+  const [difficulty, setDifficulty] = useState('hard');
+  const [difficultyMsg, setDifficultyMsg] = useState('');
 
   const [pendingLeagues, setPendingLeagues] = useState([]);
   const [activeLeagues, setActiveLeagues] = useState([]);
@@ -68,11 +70,12 @@ export default function ProfilePage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, avatar_url')
+        .select('username, avatar_url, difficulty')
         .eq('id', uid)
         .single();
       setUsername(profile?.username || '');
       setAvatarUrl(profile?.avatar_url || null);
+      setDifficulty(profile?.difficulty || 'hard');
 
       await loadLeagues(uid);
       await loadFamilyPlan(uid);
@@ -119,6 +122,17 @@ export default function ProfilePage() {
     setAvatarUrl(bustedUrl);
     setUploading(false);
     setAvatarMsg('Profilbild uppdaterad!');
+  }
+
+  async function handleSetDifficulty(level) {
+    setDifficulty(level);
+    setDifficultyMsg('');
+    const { error } = await supabase.from('profiles').update({ difficulty: level }).eq('id', userId);
+    if (error) {
+      setDifficultyMsg('Kunde inte spara: ' + error.message);
+      return;
+    }
+    setDifficultyMsg('Sparat!');
   }
 
   async function handleCreateLeague(e) {
@@ -217,6 +231,36 @@ export default function ProfilePage() {
           {avatarMsg && <div className="toast" style={{ marginTop: 6 }}>{avatarMsg}</div>}
         </div>
       </div>
+
+      {/* ---- Svårighetsgrad ---- */}
+      <div className="cat-title">Min svårighetsgrad</div>
+      <p className="subhead" style={{ marginBottom: 10 }}>
+        Gäller för allt du spelar framöver. <b style={{ color: 'var(--amber-glow)' }}>Lätt</b> räknas
+        inte med i topplistorna men syns tydligt märkt i resultaten — perfekt för yngre spelare
+        eller en avslappnad kväll.
+      </p>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+        {[
+          { key: 'hard', label: 'Svår', desc: 'Som idag, inga ledtrådar' },
+          { key: 'medium', label: 'Medel', desc: 'Ledtrådar kostar ett fel' },
+          { key: 'easy', label: 'Lätt', desc: 'Gratis ledtrådar, mer tid' }
+        ].map(opt => (
+          <button
+            key={opt.key}
+            className="plaque"
+            style={{
+              flex: '1 1 160px', textAlign: 'center',
+              borderColor: difficulty === opt.key ? 'var(--amber)' : undefined,
+              color: difficulty === opt.key ? 'var(--text)' : undefined
+            }}
+            onClick={() => handleSetDifficulty(opt.key)}
+          >
+            <div style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 15 }}>{opt.label}</div>
+            <div className="subhead" style={{ fontSize: 11, marginTop: 2 }}>{opt.desc}</div>
+          </button>
+        ))}
+      </div>
+      {difficultyMsg && <div className="toast" style={{ marginBottom: 10 }}>{difficultyMsg}</div>}
 
       {/* ---- Ligor ---- */}
       <div className="cat-title">Mina privata ligor</div>
