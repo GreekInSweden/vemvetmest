@@ -40,6 +40,8 @@ export default function TopplistorPage() {
   const [challengeRows, setChallengeRows] = useState([]);
   const [challengeLoading, setChallengeLoading] = useState(false);
 
+  const [needsPayment, setNeedsPayment] = useState(false);
+
   async function loadTotals(scopeValue) {
     const { data, error } = await supabase.rpc('leaderboard_totals', {
       p_league_id: (scopeValue === 'total' || scopeValue === 'children') ? null : scopeValue,
@@ -54,6 +56,14 @@ export default function TopplistorPage() {
       if (!sessionData.session) { router.push('/login'); return; }
 
       const uid = sessionData.session.user.id;
+
+      const { data: profile } = await supabase.from('profiles').select('paid_until').eq('id', uid).single();
+      const todayStr = ymd(stockholmNow());
+      if (!profile?.paid_until || profile.paid_until < todayStr) {
+        setNeedsPayment(true);
+        setLoading(false);
+        return;
+      }
 
       const { data: memberships } = await supabase
         .from('league_members')
@@ -107,6 +117,22 @@ export default function TopplistorPage() {
 
   if (loading) {
     return <div className="wrap"><p className="subhead">Laddar…</p></div>;
+  }
+
+  if (needsPayment) {
+    return (
+      <div className="wrap">
+        <div className="topbar"><a className="btn btn-ghost" href="/">&larr; Alla spel</a></div>
+        <div className="upgrade-card">
+          <span className="upgrade-badge">Kräver medlemskap</span>
+          <div className="upgrade-title">Lås upp Topplistor</div>
+          <p className="subhead" style={{ marginBottom: 18 }}>Topplistor kräver ett betalt medlemskap.</p>
+          <a href="/prenumerera" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
+            Bli medlem →
+          </a>
+        </div>
+      </div>
+    );
   }
 
   return (
