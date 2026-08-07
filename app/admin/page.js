@@ -18,6 +18,8 @@ export default function AdminPage() {
   const [games, setGames] = useState([]);
   const [checked, setChecked] = useState(new Set());
   const [checkedMember, setCheckedMember] = useState(new Set());
+  const [checkedPool, setCheckedPool] = useState(new Set());
+  const [openFolder, setOpenFolder] = useState(null); // 'featured' | 'member' | 'pool' | 'untested' | null
   const [dailyUsage, setDailyUsage] = useState({});
   const [showPool, setShowPool] = useState(false);
   const [gameStats, setGameStats] = useState([]);
@@ -74,13 +76,14 @@ export default function AdminPage() {
     const { data: cats } = await supabase.from('categories').select('*').order('sort_order');
     const { data: gameLists } = await supabase
       .from('game_lists')
-      .select('id, title, category_id, featured, member_exclusive')
+      .select('id, slug, title, category_id, featured, member_exclusive, daily_pool')
       .order('sort_order');
 
     setCategories(cats || []);
     setGames(gameLists || []);
     setChecked(new Set((gameLists || []).filter(g => g.featured).map(g => g.id)));
     setCheckedMember(new Set((gameLists || []).filter(g => g.member_exclusive).map(g => g.id)));
+    setCheckedPool(new Set((gameLists || []).filter(g => g.daily_pool).map(g => g.id)));
 
     // Dagens utmaning-poolen: hur många gånger varje spel (som inte är
     // medlemsspel) redan använts som Dagens utmaning, så man kan följa
@@ -139,30 +142,40 @@ export default function AdminPage() {
     });
   }
 
+  function togglePoolGame(id) {
+    setCheckedPool(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
   async function saveGames() {
     setSavingGames(true);
     setGamesMsg('');
     const allIds = games.map(g => g.id);
-    const featuredIds = allIds.filter(id => checked.has(id));
-    const hiddenIds = allIds.filter(id => !checked.has(id));
-    const memberIds = allIds.filter(id => checkedMember.has(id));
-    const nonMemberIds = allIds.filter(id => !checkedMember.has(id));
 
-    if (featuredIds.length > 0) {
-      await supabase.from('game_lists').update({ featured: true }).in('id', featuredIds);
+    const updates = [
+      ['featured', checked],
+      ['member_exclusive', checkedMember],
+      ['daily_pool', checkedPool]
+    ];
+
+    for (const [column, set] of updates) {
+      const onIds = allIds.filter(id => set.has(id));
+      const offIds = allIds.filter(id => !set.has(id));
+      if (onIds.length > 0) await supabase.from('game_lists').update({ [column]: true }).in('id', onIds);
+      if (offIds.length > 0) await supabase.from('game_lists').update({ [column]: false }).in('id', offIds);
     }
-    if (hiddenIds.length > 0) {
-      await supabase.from('game_lists').update({ featured: false }).in('id', hiddenIds);
-    }
-    if (memberIds.length > 0) {
-      await supabase.from('game_lists').update({ member_exclusive: true }).in('id', memberIds);
-    }
-    if (nonMemberIds.length > 0) {
-      await supabase.from('game_lists').update({ member_exclusive: false }).in('id', nonMemberIds);
-    }
+
     setSavingGames(false);
-    setGamesMsg(`Sparat! ${featuredIds.length} spel synliga för alla, ${memberIds.length} medlemsspel den här månaden.`);
-    setGames(prev => prev.map(g => ({ ...g, featured: checked.has(g.id), member_exclusive: checkedMember.has(g.id) })));
+    setGamesMsg(`Sparat! ${checked.size} synliga, ${checkedMember.size} medlemsspel, ${checkedPool.size} i Dagens utmaning-poolen.`);
+    setGames(prev => prev.map(g => ({
+      ...g,
+      featured: checked.has(g.id),
+      member_exclusive: checkedMember.has(g.id),
+      daily_pool: checkedPool.has(g.id)
+    })));
   }
 
   async function removeGame(id, title) {
@@ -411,28 +424,22 @@ export default function AdminPage() {
         </div>
       ))}
 
-      {/* ---- Synliga spel ---- */}
+      {/* ---- Synliga, medlems- och poolspel ---- */}
       <header style={{ margin: '40px 0 20px' }}>
         <div className="eyebrow">Adminpanel</div>
-        <h1 className="brand" style={{ fontSize: 28 }}>Välj synliga och medlemsspel</h1>
+        <h1 className="brand" style={{ fontSize: 28 }}>Välj läge per spel</h1>
         <p className="subhead">
-          <b style={{ color: 'var(--amber-glow)' }}>Synligt</b> = visas för alla på startsidan, även utan konto.{' '}
-          <b style={{ color: 'var(--amber-glow)' }}>Medlemsspel</b> = kräver inloggning men inget betalt medlemskap,
-          syns aldrig som Dagens utmaning — byt gärna ut dessa varje månad för att ge inloggade-men-ej-betalande
-          en anledning att komma tillbaka.
-        </p>
-        <p className="subhead">
-          Just nu: <b style={{ color: 'var(--amber-glow)' }}>{checked.size}</b> synliga,{' '}
-          <b style={{ color: 'var(--amber-glow)' }}>{checkedMember.size}</b> medlemsspel.
+          <b style={{ color: 'var(--amber-glow)' }}>Synligt</b> = visas för alla, även utan konto.{' '}
+          <b style={{ color: '#9ab8e6' }}>Medlem</b> = kräver inloggning, inget betalt medlemskap.{' '}
+          <b style={{ color: '#7fc98f' }}>Pool</b> = kan slumpas fram som Dagens utmaning. Ett spel som inte har
+          någon kryssruta ibockad syns ingenstans för vanliga besökare — bara du kan testspela det i admin,
+          precis rätt för nya listor innan du litar på dem.
         </p>
       </header>
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
         <button className="btn btn-primary" style={{ width: 'auto' }} onClick={saveGames} disabled={savingGames}>
           {savingGames ? 'Sparar…' : 'Spara'}
-        </button>
-        <button className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => setShowPool(s => !s)}>
-          {showPool ? 'Dölj' : 'Visa'} Dagens utmaning-poolen
         </button>
         <button
           className="btn btn-ghost"
@@ -448,60 +455,80 @@ export default function AdminPage() {
         {gamesMsg && <span className="toast" style={{ margin: 0 }}>{gamesMsg}</span>}
       </div>
 
-      {/* ---- Samlad vy: bara de aktuella medlemsspelen, oavsett kategori ---- */}
-      {checkedMember.size > 0 && (
-        <div className="panel" style={{ marginBottom: 24, border: '1px solid #5b8fd6' }}>
-          <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, textTransform: 'uppercase', color: '#9ab8e6', marginBottom: 10 }}>
-            Aktuella medlemsspel ({checkedMember.size})
-          </div>
-          <div className="list-grid">
-            {games.filter(g => checkedMember.has(g.id)).map(g => (
-              <label
-                key={g.id}
-                className="plaque"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderColor: '#5b8fd6' }}
-              >
-                <input
-                  type="checkbox"
-                  checked
-                  onChange={() => toggleMemberGame(g.id)}
-                  style={{ width: 16, height: 16, accentColor: '#5b8fd6' }}
-                />
-                {g.title}
-              </label>
-            ))}
-          </div>
-          <p className="subhead" style={{ fontSize: 12, marginTop: 10, marginBottom: 0 }}>
-            Bocka ur här för att snabbt plocka bort ett spel ur den här månadens medlemsspel — glöm inte att trycka Spara.
-          </p>
-        </div>
-      )}
+      {/* ---- Fyra klickbara mappar ---- */}
+      {(() => {
+        const untestedGames = games.filter(g => !checked.has(g.id) && !checkedMember.has(g.id) && !checkedPool.has(g.id));
+        const folders = [
+          { key: 'featured', label: 'Synliga spel', color: 'var(--amber)', glow: 'var(--amber-glow)', set: checked, toggle: toggleGame },
+          { key: 'member', label: 'Medlemsspel', color: '#5b8fd6', glow: '#9ab8e6', set: checkedMember, toggle: toggleMemberGame },
+          { key: 'pool', label: 'Dagens utmaning-pool', color: '#4f9e63', glow: '#7fc98f', set: checkedPool, toggle: togglePoolGame },
+          { key: 'untested', label: 'Ej tilldelade (testläge)', color: '#888', glow: '#bbb', set: null, toggle: null }
+        ];
+        return (
+          <div style={{ marginBottom: 24 }}>
+            {folders.map(f => {
+              const count = f.key === 'untested' ? untestedGames.length : f.set.size;
+              const isOpen = openFolder === f.key;
+              return (
+                <div key={f.key} style={{ marginBottom: 8 }}>
+                  <button
+                    className="plaque"
+                    style={{ width: '100%', textAlign: 'left', borderColor: isOpen ? f.color : undefined, display: 'flex', alignItems: 'center', gap: 8 }}
+                    onClick={() => setOpenFolder(isOpen ? null : f.key)}
+                  >
+                    <span>{isOpen ? '📂' : '📁'}</span>
+                    <span style={{ color: f.glow, fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 13 }}>{f.label}</span>
+                    <span className="subhead" style={{ marginLeft: 'auto', fontSize: 12 }}>{count} spel</span>
+                  </button>
 
-      {/* ---- Dagens utmaning-poolen: användningsstatistik ---- */}
-      {showPool && (
-        <div className="panel" style={{ marginBottom: 24 }}>
-          <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, textTransform: 'uppercase', marginBottom: 4 }}>
-            Dagens utmaning-poolen
+                  {isOpen && (
+                    <div className="panel" style={{ marginTop: 6, border: `1px solid ${f.color}` }}>
+                      {count === 0 ? (
+                        <p className="subhead" style={{ margin: 0 }}>Inga spel här just nu.</p>
+                      ) : f.key === 'untested' ? (
+                        <div className="list-grid">
+                          {untestedGames.map(g => (
+                            <div key={g.id} className="plaque" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                              <span>{g.title}</span>
+                              <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" className="btn btn-ghost" style={{ width: 'auto', padding: '4px 10px', fontSize: 12 }}>
+                                Testa →
+                              </a>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="list-grid">
+                          {games.filter(g => f.set.has(g.id)).map(g => (
+                            <label key={g.id} className="plaque" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderColor: f.color }}>
+                              <input
+                                type="checkbox"
+                                checked
+                                onChange={() => f.toggle(g.id)}
+                                style={{ width: 16, height: 16, accentColor: f.color }}
+                              />
+                              {g.title}
+                              {f.key === 'pool' && (
+                                <span className="subhead" style={{ marginLeft: 'auto', fontSize: 11 }}>
+                                  {dailyUsage[g.id]?.count ? `${dailyUsage[g.id].count}x` : 'Ny'}
+                                </span>
+                              )}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {f.key !== 'untested' && (
+                        <p className="subhead" style={{ fontSize: 11.5, marginTop: 10, marginBottom: 0 }}>
+                          Bocka ur för att ta bort ett spel härifrån — glöm inte att trycka Spara.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <p className="subhead" style={{ fontSize: 12.5, marginBottom: 14 }}>
-            Alla spel som INTE är medlemsspel kan slumpas fram som Dagens utmaning. Cron-jobbet väljer alltid
-            bland de som använts minst — listan nedan är sorterad så de som ligger överst är de som troligen
-            slumpas fram näst.
-          </p>
-          {games
-            .filter(g => !checkedMember.has(g.id))
-            .map(g => ({ ...g, usage: dailyUsage[g.id]?.count || 0, lastUsed: dailyUsage[g.id]?.lastUsed || null }))
-            .sort((a, b) => a.usage - b.usage || a.title.localeCompare(b.title))
-            .map(g => (
-              <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
-                <span>{g.title}</span>
-                <span className="subhead" style={{ fontSize: 12 }}>
-                  {g.usage === 0 ? 'Aldrig använt' : `Använt ${g.usage} ${g.usage === 1 ? 'gång' : 'gånger'}${g.lastUsed ? ` · senast ${g.lastUsed}` : ''}`}
-                </span>
-              </div>
-            ))}
-        </div>
-      )}
+        );
+      })()}
 
       {showStats && (
         <div className="panel" style={{ marginBottom: 24 }}>
@@ -599,7 +626,7 @@ export default function AdminPage() {
       )}
 
       {/* ---- Legend, så man slipper gissa vilken kryssruta som är vilken ---- */}
-      <div style={{ display: 'flex', gap: 20, marginBottom: 14, fontSize: 12 }}>
+      <div style={{ display: 'flex', gap: 20, marginBottom: 14, fontSize: 12, flexWrap: 'wrap' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 14, height: 14, borderRadius: 3, border: '2px solid var(--amber)', display: 'inline-block' }} />
           <b style={{ color: 'var(--amber-glow)' }}>SYN</b> = Synligt för alla
@@ -608,6 +635,11 @@ export default function AdminPage() {
           <span style={{ width: 14, height: 14, borderRadius: 3, border: '2px solid #5b8fd6', display: 'inline-block' }} />
           <b style={{ color: '#9ab8e6' }}>MED</b> = Medlemsspel
         </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 14, height: 14, borderRadius: 3, border: '2px solid #4f9e63', display: 'inline-block' }} />
+          <b style={{ color: '#7fc98f' }}>POOL</b> = Dagens utmaning
+        </span>
+        <span className="subhead">Inget ibockat = bara testbart av dig, syns ingenstans annars</span>
       </div>
 
       {categories.map(cat => {
@@ -617,16 +649,22 @@ export default function AdminPage() {
           <div key={cat.id} style={{ marginBottom: 18 }}>
             <div className="cat-title">{cat.name}</div>
             <div className="list-grid">
-              {catGames.map(g => (
+              {catGames.map(g => {
+                const isUntested = !checked.has(g.id) && !checkedMember.has(g.id) && !checkedPool.has(g.id);
+                return (
                 <div
                   key={g.id}
                   className="plaque"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    borderColor: checked.has(g.id) ? 'var(--amber)' : (checkedMember.has(g.id) ? '#5b8fd6' : undefined)
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    borderColor: checked.has(g.id) ? 'var(--amber)' : (checkedMember.has(g.id) ? '#5b8fd6' : (checkedPool.has(g.id) ? '#4f9e63' : undefined)),
+                    opacity: isUntested ? 0.7 : 1
                   }}
                 >
                   <span style={{ flex: 1 }}>{g.title}</span>
+                  {isUntested && (
+                    <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
+                  )}
                   <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', gap: 1 }} title="Synligt för alla">
                     <input
                       type="checkbox"
@@ -645,6 +683,15 @@ export default function AdminPage() {
                     />
                     <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.03em', color: '#9ab8e6' }}>MED</span>
                   </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', gap: 1 }} title="Kan slumpas fram som Dagens utmaning">
+                    <input
+                      type="checkbox"
+                      checked={checkedPool.has(g.id)}
+                      onChange={() => togglePoolGame(g.id)}
+                      style={{ width: 16, height: 16, accentColor: '#4f9e63' }}
+                    />
+                    <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.03em', color: '#7fc98f' }}>POOL</span>
+                  </label>
                   <button
                     onClick={() => removeGame(g.id, g.title)}
                     style={{
@@ -656,7 +703,8 @@ export default function AdminPage() {
                     ✕
                   </button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );
