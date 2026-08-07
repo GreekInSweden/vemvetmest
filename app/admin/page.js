@@ -467,6 +467,18 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* ---- Legend, så man slipper gissa vilken kryssruta som är vilken ---- */}
+      <div style={{ display: 'flex', gap: 20, marginBottom: 14, fontSize: 12 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 14, height: 14, borderRadius: 3, border: '2px solid var(--amber)', display: 'inline-block' }} />
+          <b style={{ color: 'var(--amber-glow)' }}>SYN</b> = Synligt för alla
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 14, height: 14, borderRadius: 3, border: '2px solid #5b8fd6', display: 'inline-block' }} />
+          <b style={{ color: '#9ab8e6' }}>MED</b> = Medlemsspel
+        </span>
+      </div>
+
       {categories.map(cat => {
         const catGames = games.filter(g => g.category_id === cat.id);
         if (catGames.length === 0) return null;
@@ -483,22 +495,24 @@ export default function AdminPage() {
                     borderColor: checked.has(g.id) ? 'var(--amber)' : (checkedMember.has(g.id) ? '#5b8fd6' : undefined)
                   }}
                 >
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', flex: 1 }} title="Synligt för alla">
+                  <span style={{ flex: 1 }}>{g.title}</span>
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', gap: 1 }} title="Synligt för alla">
                     <input
                       type="checkbox"
                       checked={checked.has(g.id)}
                       onChange={() => toggleGame(g.id)}
                       style={{ width: 16, height: 16, accentColor: 'var(--amber)' }}
                     />
-                    {g.title}
+                    <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.03em', color: 'var(--amber-glow)' }}>SYN</span>
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} title="Medlemsspel (kräver konto, inte betalning)">
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', gap: 1 }} title="Medlemsspel (kräver konto, inte betalning)">
                     <input
                       type="checkbox"
                       checked={checkedMember.has(g.id)}
                       onChange={() => toggleMemberGame(g.id)}
                       style={{ width: 16, height: 16, accentColor: '#5b8fd6' }}
                     />
+                    <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '.03em', color: '#9ab8e6' }}>MED</span>
                   </label>
                   <button
                     onClick={() => removeGame(g.id, g.title)}
