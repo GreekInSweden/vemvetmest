@@ -182,17 +182,37 @@ export default function TopplistorPage() {
                   ) : challengeRows.length === 0 ? (
                     <p className="subhead">Inga resultat än för det här passet.</p>
                   ) : (
-                    challengeRows.map((row, i) => (
-                      <div key={row.username + i} className="row" style={{ marginBottom: 6 }}>
-                        <div className="rank">{i + 1}</div>
-                        <div className="flap revealed">
-                          <span className="name">{row.username}</span>
-                          <span className="value">
-                            {row.guessed}/{row.total} &middot; {formatTime(row.seconds)}{row.completed ? ' ✓' : ''}
-                          </span>
+                    <>
+                      {challengeRows.filter(r => r.difficulty !== 'easy').map((row, i) => (
+                        <div key={row.username + i} className="row" style={{ marginBottom: 6 }}>
+                          <div className="rank">{i + 1}</div>
+                          <div className="flap revealed">
+                            <span className="name">{row.username}</span>
+                            <span className="value">
+                              {row.guessed}/{row.total} &middot; {formatTime(row.seconds)}{row.completed ? ' ✓' : ''}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                      {challengeRows.some(r => r.difficulty === 'easy') && (
+                        <>
+                          <div className="subhead" style={{ marginTop: 14, marginBottom: 6, fontSize: 12 }}>
+                            Lätt-läge (räknas inte i topplistan)
+                          </div>
+                          {challengeRows.filter(r => r.difficulty === 'easy').map((row, i) => (
+                            <div key={'easy-' + row.username + i} className="row" style={{ marginBottom: 6, opacity: 0.7 }}>
+                              <div className="rank">—</div>
+                              <div className="flap revealed">
+                                <span className="name">{row.username}</span>
+                                <span className="value">
+                                  {row.guessed}/{row.total} &middot; {formatTime(row.seconds)}{row.completed ? ' ✓' : ''}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
               )}
