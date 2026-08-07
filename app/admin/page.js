@@ -18,6 +18,8 @@ export default function AdminPage() {
   const [games, setGames] = useState([]);
   const [checked, setChecked] = useState(new Set());
   const [checkedMember, setCheckedMember] = useState(new Set());
+  const [dailyUsage, setDailyUsage] = useState({});
+  const [showPool, setShowPool] = useState(false);
   const [gamesMsg, setGamesMsg] = useState('');
   const [savingGames, setSavingGames] = useState(false);
 
@@ -73,6 +75,20 @@ export default function AdminPage() {
     setGames(gameLists || []);
     setChecked(new Set((gameLists || []).filter(g => g.featured).map(g => g.id)));
     setCheckedMember(new Set((gameLists || []).filter(g => g.member_exclusive).map(g => g.id)));
+
+    // Dagens utmaning-poolen: hur många gånger varje spel (som inte är
+    // medlemsspel) redan använts som Dagens utmaning, så man kan följa
+    // rotationen istället för att bara lita på att cron-jobbet sköter sig.
+    const { data: usedRows } = await supabase.from('daily_challenges').select('list_id, challenge_date');
+    const usageMap = {};
+    (usedRows || []).forEach(r => {
+      if (!usageMap[r.list_id]) usageMap[r.list_id] = { count: 0, lastUsed: null };
+      usageMap[r.list_id].count += 1;
+      if (!usageMap[r.list_id].lastUsed || r.challenge_date > usageMap[r.list_id].lastUsed) {
+        usageMap[r.list_id].lastUsed = r.challenge_date;
+      }
+    });
+    setDailyUsage(usageMap);
 
     setLoading(false);
   }
@@ -386,12 +402,70 @@ export default function AdminPage() {
         </p>
       </header>
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
         <button className="btn btn-primary" style={{ width: 'auto' }} onClick={saveGames} disabled={savingGames}>
           {savingGames ? 'Sparar…' : 'Spara'}
         </button>
+        <button className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => setShowPool(s => !s)}>
+          {showPool ? 'Dölj' : 'Visa'} Dagens utmaning-poolen
+        </button>
         {gamesMsg && <span className="toast" style={{ margin: 0 }}>{gamesMsg}</span>}
       </div>
+
+      {/* ---- Samlad vy: bara de aktuella medlemsspelen, oavsett kategori ---- */}
+      {checkedMember.size > 0 && (
+        <div className="panel" style={{ marginBottom: 24, border: '1px solid #5b8fd6' }}>
+          <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, textTransform: 'uppercase', color: '#9ab8e6', marginBottom: 10 }}>
+            Aktuella medlemsspel ({checkedMember.size})
+          </div>
+          <div className="list-grid">
+            {games.filter(g => checkedMember.has(g.id)).map(g => (
+              <label
+                key={g.id}
+                className="plaque"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderColor: '#5b8fd6' }}
+              >
+                <input
+                  type="checkbox"
+                  checked
+                  onChange={() => toggleMemberGame(g.id)}
+                  style={{ width: 16, height: 16, accentColor: '#5b8fd6' }}
+                />
+                {g.title}
+              </label>
+            ))}
+          </div>
+          <p className="subhead" style={{ fontSize: 12, marginTop: 10, marginBottom: 0 }}>
+            Bocka ur här för att snabbt plocka bort ett spel ur den här månadens medlemsspel — glöm inte att trycka Spara.
+          </p>
+        </div>
+      )}
+
+      {/* ---- Dagens utmaning-poolen: användningsstatistik ---- */}
+      {showPool && (
+        <div className="panel" style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, textTransform: 'uppercase', marginBottom: 4 }}>
+            Dagens utmaning-poolen
+          </div>
+          <p className="subhead" style={{ fontSize: 12.5, marginBottom: 14 }}>
+            Alla spel som INTE är medlemsspel kan slumpas fram som Dagens utmaning. Cron-jobbet väljer alltid
+            bland de som använts minst — listan nedan är sorterad så de som ligger överst är de som troligen
+            slumpas fram näst.
+          </p>
+          {games
+            .filter(g => !checkedMember.has(g.id))
+            .map(g => ({ ...g, usage: dailyUsage[g.id]?.count || 0, lastUsed: dailyUsage[g.id]?.lastUsed || null }))
+            .sort((a, b) => a.usage - b.usage || a.title.localeCompare(b.title))
+            .map(g => (
+              <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
+                <span>{g.title}</span>
+                <span className="subhead" style={{ fontSize: 12 }}>
+                  {g.usage === 0 ? 'Aldrig använt' : `Använt ${g.usage} ${g.usage === 1 ? 'gång' : 'gånger'}${g.lastUsed ? ` · senast ${g.lastUsed}` : ''}`}
+                </span>
+              </div>
+            ))}
+        </div>
+      )}
 
       {categories.map(cat => {
         const catGames = games.filter(g => g.category_id === cat.id);
