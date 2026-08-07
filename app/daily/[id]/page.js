@@ -89,6 +89,9 @@ export default function DailyPlayPage() {
   const [toast, setToast] = useState('');
   const [shake, setShake] = useState(false);
   const [guess, setGuess] = useState('');
+  const [difficulty, setDifficulty] = useState('hard');
+  const [hintMsg, setHintMsg] = useState('');
+  const difficultyRef = useRef('hard');
   const inputRef = useRef(null);
   const timerRef = useRef(null);
   const guessedRef = useRef(new Set());
@@ -103,6 +106,11 @@ export default function DailyPlayPage() {
       if (!sessionData.session) { router.push('/login'); return; }
       const uid = sessionData.session.user.id;
       setUserId(uid);
+
+      const { data: profile } = await supabase.from('profiles').select('difficulty').eq('id', uid).single();
+      const diff = profile?.difficulty || 'hard';
+      setDifficulty(diff);
+      difficultyRef.current = diff;
 
       const { data: challengeRow } = await supabase
         .from('daily_challenges')
@@ -177,7 +185,8 @@ export default function DailyPlayPage() {
         setEligibility({ ok: false, reason: 'Det här passet går inte längre att spela.' });
       }
 
-      const limit = listRow.time_limit_seconds || 300;
+      const baseLimit = listRow.time_limit_seconds || 300;
+      const limit = diff === 'easy' ? Math.round(baseLimit * 1.5) : baseLimit;
       timeLimitRef.current = limit;
       setSecondsLeft(limit);
     }
@@ -229,7 +238,8 @@ export default function DailyPlayPage() {
         misses: missesRef.current,
         seconds: timeLimitRef.current - (reason === 'timeout' ? 0 : secondsLeft),
         completed: reason === 'complete',
-        used_life: usingLifeRef.current
+        used_life: usingLifeRef.current,
+        difficulty: difficultyRef.current
       });
     }
   }
@@ -341,6 +351,19 @@ export default function DailyPlayPage() {
     if (next.size === items.length) endGame('complete');
   }
 
+  function handleHint() {
+    if (finishedRef.current || difficultyRef.current === 'hard') return;
+    const remaining = items.filter(item => !guessedRef.current.has(item.rank));
+    if (remaining.length === 0) return;
+    const target = remaining.reduce((a, b) => (a.rank < b.rank ? a : b));
+
+    if (difficultyRef.current === 'medium') {
+      missesRef.current += 1;
+    }
+    setHintMsg(`💡 Rad #${target.rank} börjar på "${target.name[0].toUpperCase()}"`);
+    setTimeout(() => setHintMsg(''), 4000);
+  }
+
   function giveUp() {
     if (finishedRef.current) return;
     endGame('giveup');
@@ -424,6 +447,12 @@ export default function DailyPlayPage() {
             Ett namn kan ge flera träffar på en gång om det förekommer flera gånger i listan.
           </div>
         )}
+        {difficulty !== 'hard' && (
+          <div className="subhead" style={{ marginBottom: 12 }}>
+            Spelar på nivå <b style={{ color: 'var(--amber-glow)' }}>{difficulty === 'easy' ? 'Lätt' : 'Medel'}</b>
+            {difficulty === 'easy' ? ' — räknas inte i topplistorna.' : '.'}
+          </div>
+        )}
 
         <div className="stats">
           <div className="stat">Gissade: <b>{guessedRanks.size}</b> / {items.length}</div>
@@ -442,7 +471,19 @@ export default function DailyPlayPage() {
             disabled={finished}
           />
           <button className="btn btn-primary" style={{ width: 'auto' }} type="submit" disabled={finished}>Gissa</button>
+          {difficulty !== 'hard' && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ width: 'auto' }}
+              onClick={handleHint}
+              disabled={finished}
+            >
+              Ledtråd{difficulty === 'medium' ? ' (kostar ett fel)' : ''}
+            </button>
+          )}
         </form>
+        {hintMsg && <div className="toast" style={{ color: 'var(--amber-glow)' }}>{hintMsg}</div>}
         <div className="toast">{toast}</div>
 
         <div className="foot-actions">
