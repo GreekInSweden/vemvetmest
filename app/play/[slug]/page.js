@@ -90,6 +90,9 @@ export default function PlayPage() {
   const [toast, setToast] = useState('');
   const [shake, setShake] = useState(false);
   const [guess, setGuess] = useState('');
+  const [difficulty, setDifficulty] = useState('hard');
+  const [hintMsg, setHintMsg] = useState('');
+  const difficultyRef = useRef('hard');
   const inputRef = useRef(null);
   const timerRef = useRef(null);
   const guessedRef = useRef(new Set());
@@ -103,7 +106,16 @@ export default function PlayPage() {
       // Ingen inloggning krävs för att TESTA ett övningsspel - resultatet
       // sparas bara om man är inloggad (userId är null annars, vilket
       // insert-anropet vid spelslut redan hanterar gracefully).
-      setUserId(sessionData.session ? sessionData.session.user.id : null);
+      const uid = sessionData.session ? sessionData.session.user.id : null;
+      setUserId(uid);
+
+      let diff = 'hard';
+      if (uid) {
+        const { data: profile } = await supabase.from('profiles').select('difficulty').eq('id', uid).single();
+        diff = profile?.difficulty || 'hard';
+      }
+      setDifficulty(diff);
+      difficultyRef.current = diff;
 
       const { data: listRow } = await supabase
         .from('game_lists')
@@ -120,7 +132,8 @@ export default function PlayPage() {
         .order('rank');
       setItems(itemRows || []);
 
-      const limit = listRow.time_limit_seconds || 300;
+      const baseLimit = listRow.time_limit_seconds || 300;
+      const limit = diff === 'easy' ? Math.round(baseLimit * 1.5) : baseLimit;
       timeLimitRef.current = limit;
       setSecondsLeft(limit);
       startTimer();
@@ -168,6 +181,7 @@ export default function PlayPage() {
         total: items.length,
         misses: missesRef.current,
         seconds: elapsed,
+        difficulty: difficultyRef.current,
         completed: reason === 'complete'
       });
     }
@@ -290,6 +304,20 @@ export default function PlayPage() {
     if (next.size === items.length) endGame('complete');
   }
 
+  function handleHint() {
+    if (finishedRef.current || difficultyRef.current === 'hard') return;
+    const remaining = items.filter(item => !guessedRef.current.has(item.rank));
+    if (remaining.length === 0) return;
+    const target = remaining.reduce((a, b) => (a.rank < b.rank ? a : b));
+
+    if (difficultyRef.current === 'medium') {
+      missesRef.current += 1;
+      setMisses(missesRef.current);
+    }
+    setHintMsg(`💡 Rad #${target.rank} börjar på "${target.name[0].toUpperCase()}"`);
+    setTimeout(() => setHintMsg(''), 4000);
+  }
+
   function giveUp() {
     if (finishedRef.current) return;
     endGame('giveup');
@@ -349,6 +377,12 @@ export default function PlayPage() {
             Ett namn kan ge flera träffar på en gång om det förekommer flera gånger i listan.
           </div>
         )}
+        {difficulty !== 'hard' && (
+          <div className="subhead" style={{ marginBottom: 12 }}>
+            Spelar på nivå <b style={{ color: 'var(--amber-glow)' }}>{difficulty === 'easy' ? 'Lätt' : 'Medel'}</b>
+            {difficulty === 'easy' ? ' — räknas inte i topplistorna.' : '.'}
+          </div>
+        )}
 
         <div className="stats">
           <div className="stat">Gissade: <b>{guessedRanks.size}</b> / {items.length}</div>
@@ -369,7 +403,19 @@ export default function PlayPage() {
             disabled={finished}
           />
           <button className="btn btn-primary" style={{ width: 'auto' }} type="submit" disabled={finished}>Gissa</button>
+          {difficulty !== 'hard' && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ width: 'auto' }}
+              onClick={handleHint}
+              disabled={finished}
+            >
+              Ledtråd{difficulty === 'medium' ? ' (kostar ett fel)' : ''}
+            </button>
+          )}
         </form>
+        {hintMsg && <div className="toast" style={{ color: 'var(--amber-glow)' }}>{hintMsg}</div>}
         <div className="toast">{toast}</div>
 
         <div className="foot-actions">
