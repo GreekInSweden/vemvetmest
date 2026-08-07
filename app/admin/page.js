@@ -20,6 +20,9 @@ export default function AdminPage() {
   const [checkedMember, setCheckedMember] = useState(new Set());
   const [dailyUsage, setDailyUsage] = useState({});
   const [showPool, setShowPool] = useState(false);
+  const [gameStats, setGameStats] = useState([]);
+  const [showStats, setShowStats] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [gamesMsg, setGamesMsg] = useState('');
   const [savingGames, setSavingGames] = useState(false);
 
@@ -226,6 +229,13 @@ export default function AdminPage() {
     setPaymentMsg(`Markerad betald till och med ${paidUntilStr}.`);
   }
 
+  async function loadGameStats() {
+    setStatsLoading(true);
+    const { data, error } = await supabase.rpc('game_play_stats');
+    if (!error) setGameStats(data || []);
+    setStatsLoading(false);
+  }
+
   async function markPaidCompany(userId, username) {
     setPaymentMsg('');
     const seats = Math.max(COMPANY_MIN_SEATS, parseInt(companySeats[userId] || COMPANY_MIN_SEATS, 10));
@@ -409,6 +419,17 @@ export default function AdminPage() {
         <button className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => setShowPool(s => !s)}>
           {showPool ? 'Dölj' : 'Visa'} Dagens utmaning-poolen
         </button>
+        <button
+          className="btn btn-ghost"
+          style={{ width: 'auto' }}
+          onClick={() => {
+            const next = !showStats;
+            setShowStats(next);
+            if (next && gameStats.length === 0) loadGameStats();
+          }}
+        >
+          {showStats ? 'Dölj' : 'Visa'} Spelstatistik
+        </button>
         {gamesMsg && <span className="toast" style={{ margin: 0 }}>{gamesMsg}</span>}
       </div>
 
@@ -464,6 +485,45 @@ export default function AdminPage() {
                 </span>
               </div>
             ))}
+        </div>
+      )}
+
+      {showStats && (
+        <div className="panel" style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, textTransform: 'uppercase', marginBottom: 4 }}>
+            Spelstatistik — övningsspel
+          </div>
+          <p className="subhead" style={{ fontSize: 12.5, marginBottom: 14 }}>
+            Bygger på sparade resultat från inloggade spelare. Anonyma besökares spelningar sparas inte alls
+            just nu, så siffrorna visar bara en del av det verkliga intresset — säg till om du vill att jag
+            bygger in spårning för anonyma också.
+          </p>
+          {statsLoading ? (
+            <p className="subhead">Laddar…</p>
+          ) : gameStats.length === 0 ? (
+            <p className="subhead">Inga resultat sparade än.</p>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+                <span>Spel</span>
+                <span style={{ display: 'flex', gap: 20 }}>
+                  <span style={{ width: 70, textAlign: 'right' }}>Spelningar</span>
+                  <span style={{ width: 60, textAlign: 'right' }}>Snitt %</span>
+                  <span style={{ width: 70, textAlign: 'right' }}>Klarade %</span>
+                </span>
+              </div>
+              {gameStats.map(g => (
+                <div key={g.list_id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
+                  <span>{g.title}</span>
+                  <span style={{ display: 'flex', gap: 20 }}>
+                    <span style={{ width: 70, textAlign: 'right', color: 'var(--amber-glow)' }}>{g.play_count}</span>
+                    <span style={{ width: 60, textAlign: 'right' }} className="subhead">{g.avg_percent != null ? `${g.avg_percent}%` : '—'}</span>
+                    <span style={{ width: 70, textAlign: 'right' }} className="subhead">{g.completion_rate != null ? `${g.completion_rate}%` : '—'}</span>
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
 
