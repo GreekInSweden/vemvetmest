@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import {
-  PLAN_PRICES, SWISH_NUMBER,
+  buildSwishLink, swishQrImageUrl, SWISH_NUMBER, PLAN_PRICES,
   COMPANY_PRICE_PER_SEAT, COMPANY_MIN_SEATS
 } from '../../lib/swish';
 
@@ -14,9 +14,6 @@ export default function PrenumereraPage() {
   const [seats, setSeats] = useState(COMPANY_MIN_SEATS);
   const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [qrImage, setQrImage] = useState(null);
-  const [qrLoading, setQrLoading] = useState(false);
-  const [qrError, setQrError] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -39,35 +36,11 @@ export default function PrenumereraPage() {
   const message = username
     ? (isCompany ? `KDA-${username}-F${seats}` : `KDA-${username}`)
     : null;
-
-  useEffect(() => {
-    if (!message) { setQrImage(null); return; }
-    let cancelled = false;
-    async function fetchQr() {
-      setQrLoading(true);
-      setQrError('');
-      setQrImage(null);
-      try {
-        const res = await fetch('/api/swish-qr', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ payeeNumber: SWISH_NUMBER, amount, message })
-        });
-        const data = await res.json();
-        if (cancelled) return;
-        if (!res.ok || data.error) {
-          setQrError(data.error || 'Kunde inte hämta QR-koden.');
-        } else {
-          setQrImage(data.image);
-        }
-      } catch (err) {
-        if (!cancelled) setQrError('Kunde inte nå Swish just nu: ' + err.message);
-      }
-      if (!cancelled) setQrLoading(false);
-    }
-    fetchQr();
-    return () => { cancelled = true; };
-  }, [message, amount]);
+  // Både belopp och meddelande låsta (editableFields tom) - ingen ska
+  // kunna ändra vare sig summan eller vem betalningen tillhör.
+  const swishLink = message
+    ? buildSwishLink({ payeeNumber: SWISH_NUMBER, amount, message, editableFields: [] })
+    : null;
 
   return (
     <div className="wrap">
@@ -148,20 +121,18 @@ export default function PrenumereraPage() {
         ) : (
           <>
             <div style={{
-              background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: 16, borderRadius: 8, marginBottom: 16, minWidth: 240, minHeight: 240
+              background: '#fff', display: 'inline-block', padding: 16, borderRadius: 8, marginBottom: 16
             }}>
-              {qrLoading && <p style={{ color: '#333' }}>Genererar QR-kod…</p>}
-              {qrError && <p style={{ color: '#b00', fontSize: 13, maxWidth: 220 }}>{qrError}</p>}
-              {qrImage && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={qrImage} alt="Swish QR-kod" width={240} height={240} />
-              )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={swishQrImageUrl(swishLink)} alt="Swish QR-kod" width={240} height={240} />
             </div>
             <p className="subhead" style={{ marginBottom: 4 }}>
               Skanna med Swish-appen. Belopp och meddelande (<b style={{ color: 'var(--amber-glow)' }}>{message}</b>) är redan ifyllda.
             </p>
-            <p className="subhead" style={{ fontSize: 12.5, borderTop: '1px solid var(--line)', paddingTop: 14, marginTop: 14 }}>
+            <p className="subhead" style={{ fontSize: 12, marginBottom: 18 }}>
+              På mobilen? <a href={swishLink}>Tryck här istället för att skanna</a>.
+            </p>
+            <p className="subhead" style={{ fontSize: 12.5, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
               När betalningen har registrerats aktiveras ditt konto manuellt inom kort — det här är
               i uppstartsläge inget som sker automatiskt än.
             </p>
