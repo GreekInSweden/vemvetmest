@@ -31,6 +31,13 @@ export async function GET(request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
+  // Global "start"-spärr: innan admin aktiverat lanseringen skapas ALDRIG
+  // några nya utmaningar, oavsett vilka spel som ligger i poolen.
+  const { data: settings } = await supabase.from('app_settings').select('daily_pool_launched').eq('id', 1).single();
+  if (!settings?.daily_pool_launched) {
+    return Response.json({ skipped: true, reason: 'daily pool not launched yet' });
+  }
+
   const now = stockholmNow();
   const isoWeekday = ((now.getDay() + 6) % 7) + 1; // 1=mån ... 7=sön
   const today = ymd(now);
