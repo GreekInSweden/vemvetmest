@@ -20,6 +20,8 @@ export default function AdminPage() {
   const [checkedMember, setCheckedMember] = useState(new Set());
   const [checkedPool, setCheckedPool] = useState(new Set());
   const [openFolder, setOpenFolder] = useState(null); // 'featured' | 'member' | 'pool' | 'untested' | null
+  const [launched, setLaunched] = useState(false);
+  const [launchMsg, setLaunchMsg] = useState('');
   const [dailyUsage, setDailyUsage] = useState({});
   const [showPool, setShowPool] = useState(false);
   const [gameStats, setGameStats] = useState([]);
@@ -57,6 +59,9 @@ export default function AdminPage() {
       return;
     }
     setIsAdmin(true);
+
+    const { data: settings } = await supabase.from('app_settings').select('daily_pool_launched').eq('id', 1).single();
+    setLaunched(!!settings?.daily_pool_launched);
 
     const { data: pendingLeagues } = await supabase
       .from('leagues')
@@ -214,6 +219,27 @@ export default function AdminPage() {
     setPaymentResults(data || []);
   }
 
+  async function toggleLaunch() {
+    const next = !launched;
+    if (next) {
+      const ok = window.confirm(
+        'Aktivera Dagens utmaning-poolen? Från nästa körning av cron-jobbet (mån/ons) börjar riktiga utmaningar slumpas fram från poolen. Går att stänga av igen om något känns fel.'
+      );
+      if (!ok) return;
+    }
+    setLaunchMsg('');
+    const { error } = await supabase
+      .from('app_settings')
+      .update({ daily_pool_launched: next, launched_at: next ? new Date().toISOString() : null })
+      .eq('id', 1);
+    if (error) {
+      setLaunchMsg('Kunde inte ändra: ' + error.message);
+      return;
+    }
+    setLaunched(next);
+    setLaunchMsg(next ? 'Aktiverat! Dagens utmaning börjar köras vid nästa cron-körning.' : 'Avstängt igen — inga nya utmaningar skapas.');
+  }
+
   async function markPaid(userId, planKey) {
     setPaymentMsg('');
     const days = PLAN_PRICES[planKey].days;
@@ -337,6 +363,35 @@ export default function AdminPage() {
         <div className="eyebrow">Adminpanel</div>
         <h1 className="brand" style={{ fontSize: 32 }}>Kan Du Alla</h1>
       </header>
+
+      {/* ---- Global start/stopp för Dagens utmaning ---- */}
+      <div
+        className="panel"
+        style={{
+          marginBottom: 24,
+          border: `2px solid ${launched ? '#4f9e63' : 'var(--miss)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14
+        }}
+      >
+        <div>
+          <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 16, textTransform: 'uppercase', color: launched ? '#7fc98f' : 'var(--miss)' }}>
+            {launched ? '🟢 Dagens utmaning är LIVE' : '🔴 Dagens utmaning är AVSTÄNGD'}
+          </div>
+          <p className="subhead" style={{ margin: '4px 0 0', fontSize: 12.5 }}>
+            {launched
+              ? 'Cron-jobbet skapar nya utmaningar som vanligt varje måndag och onsdag.'
+              : 'Ingen ny utmaning skapas alls, oavsett vad som ligger i poolen — tryck igång när sidan är redo att lanseras.'}
+          </p>
+          {launchMsg && <p className="toast" style={{ margin: '6px 0 0' }}>{launchMsg}</p>}
+        </div>
+        <button
+          className={launched ? 'btn btn-ghost' : 'btn btn-primary'}
+          style={{ width: 'auto', flexShrink: 0 }}
+          onClick={toggleLaunch}
+        >
+          {launched ? 'Stäng av' : 'Starta Dagens utmaning'}
+        </button>
+      </div>
 
       {msg && <div className="error-msg">{msg}</div>}
 
