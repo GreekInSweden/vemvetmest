@@ -338,8 +338,8 @@ export default function Dashboard() {
           </p>
           <div className="list-grid" style={{ marginBottom: 10 }}>
             {childLists.map(l => (
-              <a key={l.id} className="plaque" href={`/play/${l.slug}`} style={{ borderColor: '#c98f4f' }}>
-                <span className="tag" style={{ background: '#3a2c1a', color: '#e0b37f' }}>Barnpaket</span>
+              <a key={l.id} className="plaque" href={`/play/${l.slug}`} style={{ borderColor: '#e0b37f' }}>
+                <span className="tag" style={{ background: 'transparent', color: '#e0b37f', opacity: 0.85, padding: 0 }}>Barnpaket</span>
                 {l.title}
               </a>
             ))}
