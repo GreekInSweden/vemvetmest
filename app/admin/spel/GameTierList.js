@@ -136,9 +136,7 @@ export default function GameTierList({ filterTier }) {
           {visibleGames.map(g => (
             <div key={g.id} className="plaque" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ flex: 1 }}>{g.title}</span>
-              {filterTier === 'untested' && (
-                <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
-              )}
+              <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
               {TIERS.map(t => (
                 <label key={t.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', gap: 1 }} title={t.title}>
                   <input
