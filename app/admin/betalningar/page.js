@@ -16,6 +16,11 @@ export default function AdminBetalningar() {
   const [pendingAsParent, setPendingAsParent] = useState({});
   const [pendingAsChild, setPendingAsChild] = useState({});
   const [activePackages, setActivePackages] = useState({}); // { childProfileId: { id, paid_until } }
+  const [myOwnId, setMyOwnId] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setMyOwnId(data.session?.user.id || null));
+  }, []);
 
   async function loadPendingChildInfo(profileIds, childPackageIds) {
     if (profileIds.length === 0) { setPendingAsParent({}); setPendingAsChild({}); setActivePackages({}); return; }
@@ -127,6 +132,24 @@ export default function AdminBetalningar() {
     }
     setPaymentResults(data || []);
     await loadPendingChildInfo((data || []).map(u => u.id), (data || []).map(u => u.child_package_id));
+  }
+
+  async function toggleAdmin(userId, username, currentValue) {
+    if (currentValue && userId === myOwnId) {
+      setPaymentMsg('Du kan inte ta bort admin-status från ditt eget konto härifrån, för att undvika att du låser ut dig själv.');
+      return;
+    }
+    const action = currentValue ? 'Ta bort admin-status från' : 'Ge FULL admin-status till';
+    const ok = window.confirm(`${action} "${username}"? ${currentValue ? '' : 'Detta ger fullständig tillgång till hela adminpanelen, inklusive betalningar och alla användares data.'}`);
+    if (!ok) return;
+    setPaymentMsg('');
+    const { error } = await supabase.from('profiles').update({ is_admin: !currentValue }).eq('id', userId);
+    if (error) {
+      setPaymentMsg('Kunde inte ändra: ' + error.message);
+      return;
+    }
+    setPaymentResults(prev => prev.map(u => u.id === userId ? { ...u, is_admin: !currentValue } : u));
+    setPaymentMsg(`"${username}" är ${!currentValue ? 'nu admin' : 'inte längre admin'}.`);
   }
 
   async function toggleSemiAdmin(userId, username, currentValue) {
@@ -273,8 +296,15 @@ export default function AdminBetalningar() {
               </div>
             </div>
 
-            {!u.is_admin && (
-              <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                className="btn btn-ghost"
+                style={{ width: 'auto', padding: '4px 12px', fontSize: 12, borderColor: u.is_admin ? '#e0b37f' : undefined }}
+                onClick={() => toggleAdmin(u.id, u.username, u.is_admin)}
+              >
+                {u.is_admin ? 'Ta bort admin' : 'Gör till admin (full tillgång)'}
+              </button>
+              {!u.is_admin && (
                 <button
                   className="btn btn-ghost"
                   style={{ width: 'auto', padding: '4px 12px', fontSize: 12, borderColor: u.is_semi_admin ? '#7fa8c9' : undefined }}
@@ -282,8 +312,8 @@ export default function AdminBetalningar() {
                 >
                   {u.is_semi_admin ? 'Ta bort semi-admin' : 'Gör till semi-admin (bara Spel)'}
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
             {myPendingPackage ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
