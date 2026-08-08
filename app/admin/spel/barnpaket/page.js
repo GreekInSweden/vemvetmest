@@ -17,7 +17,7 @@ export default function BarnpaketSpel() {
     setLoading(true);
     const { data } = await supabase
       .from('game_lists')
-      .select('id, title')
+      .select('id, slug, title')
       .eq('child_package', true)
       .order('title');
     setMembers(data || []);
@@ -76,19 +76,28 @@ export default function BarnpaketSpel() {
       ) : (
         <div className="list-grid" style={{ marginBottom: 24 }}>
           {members.map(g => (
-            <label
+            <div
               key={g.id}
               className="plaque"
-              style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', borderColor: '#c98f4f' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, borderColor: '#c98f4f' }}
             >
               <input
                 type="checkbox"
                 checked
                 onChange={() => removeFromPackage(g.id, g.title)}
-                style={{ width: 16, height: 16, accentColor: '#c98f4f' }}
+                style={{ width: 16, height: 16, accentColor: '#c98f4f', cursor: 'pointer' }}
               />
-              {g.title}
-            </label>
+              <span style={{ flex: 1 }}>{g.title}</span>
+              <a
+                href={`/play/${g.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                style={{ fontSize: 11 }}
+                title="Testspela"
+              >
+                🔍
+              </a>
+            </div>
           ))}
         </div>
       )}
