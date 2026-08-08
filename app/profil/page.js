@@ -408,7 +408,7 @@ export default function ProfilePage() {
           <div className="subhead" style={{ marginBottom: 8 }}>Aktiva grupper ({activeLeagues.length})</div>
           <div className="list-grid" style={{ marginBottom: 10 }}>
             {activeLeagues.map(l => (
-              <div key={l.id} className="plaque" style={{ cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div key={l.id} className="plaque" style={{ cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
                 <span>
                   <span className="tag">Aktiv</span>
                   {l.name}
@@ -428,7 +428,7 @@ export default function ProfilePage() {
       <div className="cat-title" style={{ marginTop: 34 }}>Familjeplan</div>
 
       {familyPlan ? (
-        <div className="plaque" style={{ cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div className="plaque" style={{ cursor: 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
           <span>
             <span className="tag">{familyPlan.isOwner ? 'Ägare' : 'Medlem'}</span>
             {familyPlan.memberCount} / {familyPlan.maxMembers} platser använda
@@ -502,7 +502,7 @@ export default function ProfilePage() {
                       ? <span className="tag" style={{ background: '#2a3f2a', color: '#7fc98f' }}>Aktivt t.o.m. {c.paid_until}</span>
                       : <span className="tag" style={{ background: '#3a1a1a', color: '#e09090' }}>Har gått ut — förnya i admin</span>}
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {c.activated && (
                     <a href={`/profil/barnstatistik/${c.child_profile_id}`} className="btn btn-ghost" style={{ width: 'auto', padding: '6px 12px', fontSize: 12.5 }}>
                       Se statistik →
