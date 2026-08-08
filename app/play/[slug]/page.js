@@ -94,6 +94,7 @@ export default function PlayPage() {
   const [hintMsg, setHintMsg] = useState('');
   const difficultyRef = useRef('hard');
   const [memberLocked, setMemberLocked] = useState(false);
+  const [childPackageLocked, setChildPackageLocked] = useState(false);
   const inputRef = useRef(null);
   const timerRef = useRef(null);
   const guessedRef = useRef(new Set());
@@ -111,9 +112,11 @@ export default function PlayPage() {
       setUserId(uid);
 
       let diff = 'hard';
+      let childPackageId = null;
       if (uid) {
-        const { data: profile } = await supabase.from('profiles').select('difficulty').eq('id', uid).single();
+        const { data: profile } = await supabase.from('profiles').select('difficulty, child_package_id').eq('id', uid).single();
         diff = profile?.difficulty || 'hard';
+        childPackageId = profile?.child_package_id || null;
       }
       setDifficulty(diff);
       difficultyRef.current = diff;
@@ -125,6 +128,13 @@ export default function PlayPage() {
         .single();
       if (!listRow) return;
       setList(listRow);
+
+      // Barnpaket-spel kräver att kontot löst in en barnpaket-kod -
+      // helt separat spärr från medlemsspel/betalning.
+      if (listRow.child_package && !childPackageId) {
+        setChildPackageLocked(true);
+        return;
+      }
 
       // Medlemsspel är gratis men kräver ett konto (inte betalning) -
       // visa en "logga in"-spärr istället för att ladda in listan.
@@ -343,6 +353,25 @@ export default function PlayPage() {
     setToast('');
     startTimer();
     setTimeout(() => inputRef.current && inputRef.current.focus(), 0);
+  }
+
+  if (childPackageLocked) {
+    return (
+      <div className="wrap">
+        <div className="topbar"><a className="btn btn-ghost" href="/">&larr; Alla spel</a></div>
+        <div className="upgrade-card">
+          <span className="upgrade-badge">Barnpaket krävs</span>
+          <div className="upgrade-title">Det här spelet ingår i Barnpaketet</div>
+          <p className="subhead" style={{ marginBottom: 18 }}>
+            En förälder köper Barnpaketet en gång (99 kr) och får en kod — lös in den under din profil
+            för att låsa upp de 50 spelen permanent.
+          </p>
+          <a href="/prenumerera" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
+            Läs mer →
+          </a>
+        </div>
+      </div>
+    );
   }
 
   if (memberLocked) {
