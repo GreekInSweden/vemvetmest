@@ -21,12 +21,12 @@ export default function AdminOverview() {
       .from('leagues').select('id', { count: 'exact', head: true }).eq('status', 'pending');
     setPendingLeagues(pendingCount || 0);
 
-    const { data: games } = await supabase.from('game_lists').select('featured, member_exclusive, daily_pool');
+    const { data: games } = await supabase.from('game_lists').select('featured, member_exclusive, daily_pool, tested, child_package');
     const rows = games || [];
     setFeaturedCount(rows.filter(g => g.featured).length);
     setMemberCount(rows.filter(g => g.member_exclusive).length);
     setPoolCount(rows.filter(g => g.daily_pool).length);
-    setUntestedGames(rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool).length);
+    setUntestedGames(rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool && !g.tested && !g.child_package).length);
 
     setLoading(false);
   }
