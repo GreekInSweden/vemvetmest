@@ -61,7 +61,20 @@ export async function POST(request) {
 
     const childId = created.user.id;
 
-    await supabaseAdmin.from('profiles').update({ username: childUsername, is_child: true }).eq('id', childId);
+    // Update räcker inte här - om ingen profil-rad redan skapats
+    // automatiskt (vilket tycks vara fallet för admin-skapade konton,
+    // till skillnad från vanlig signup) måste vi säkerställa att den
+    // finns innan vi kopplar child_packages till den.
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .upsert({ id: childId, username: childUsername, is_child: true }, { onConflict: 'id' });
+
+    if (profileError) {
+      // Städa upp - annars blir kontot kvar men aldrig kopplat till
+      // något, och namnet går inte att använda igen.
+      await supabaseAdmin.auth.admin.deleteUser(childId);
+      return Response.json({ error: 'Kontot skapades, men profilen kunde inte sättas upp: ' + profileError.message }, { status: 500 });
+    }
 
     const { data: pkg, error: pkgError } = await supabaseAdmin
       .from('child_packages')
@@ -75,7 +88,8 @@ export async function POST(request) {
       .single();
 
     if (pkgError) {
-      return Response.json({ error: 'Kontot skapades, men barnpaketet kunde inte registreras: ' + pkgError.message }, { status: 500 });
+      await supabaseAdmin.auth.admin.deleteUser(childId);
+      return Response.json({ error: 'Kunde inte registrera barnpaketet: ' + pkgError.message }, { status: 500 });
     }
 
     return Response.json({ success: true, childId, packageId: pkg.id });
