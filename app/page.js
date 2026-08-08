@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [categories, setCategories] = useState([]);
   const [lists, setLists] = useState([]);
+  const [memberLists, setMemberLists] = useState([]);
   const [activeLeagues, setActiveLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,6 +99,13 @@ export default function Dashboard() {
       setLoggedIn(true);
       const uid = sessionData.session.user.id;
 
+      const { data: memberGames } = await supabase
+        .from('game_lists')
+        .select('id, slug, title, subtitle, category_id')
+        .eq('member_exclusive', true)
+        .order('sort_order');
+      setMemberLists(memberGames || []);
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('username, is_admin, paid_until')
@@ -169,53 +177,95 @@ export default function Dashboard() {
         <p className="subhead">Välj ett spel — fler kategorier och listor läggs till löpande.</p>
       </header>
 
-      {/* ---- Prenumerations-CTA ---- */}
-      <div className="upgrade-card">
-        <span className="upgrade-badge">Obegränsad tillgång</span>
-        <div className="upgrade-title">Vill du tävla på riktigt?</div>
-        <p className="subhead" style={{ maxWidth: 520, marginBottom: 0 }}>
-          104 nya utmaningar om året — två färska varje vecka, dolda tills du klickar in.
-          Skapa egna ligor med kollegorna och jaga topplistan.
-        </p>
-        <ul className="upgrade-perks">
-          <li>✓ <b>Dagens utmaning</b> — måndag och onsdag, hela året</li>
-          <li>✓ <b>Fredag</b> är sista chansen att lösa in ett liv om du missat något</li>
-          <li>✓ <b>Egna privata ligor</b> med vänner och kollegor</li>
-          <li>✓ <b>Topplistor</b> — avslöjas varje lördag, totalt, per liga och per omgång</li>
-        </ul>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
-          <div>
-            <div className="upgrade-price">29 kr<span> / månad</span></div>
-            <div className="subhead" style={{ fontSize: 12, marginTop: 2 }}>eller 299 kr för hela året</div>
-          </div>
-          <a href="/prenumerera" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
-            Bli medlem →
-          </a>
-        </div>
-      </div>
+      {/* ==== BETALANDE MEDLEMMAR: allt medlemskapet ger tillgång till, överst ==== */}
+      {loggedIn && isPaidActive && (
+        <>
+          {daysUntilExpiry !== null && (
+            <div className="panel" style={{ marginBottom: 16, border: '1px solid var(--amber)' }}>
+              <div className="subhead">
+                Ditt medlemskap går ut om <b style={{ color: 'var(--amber-glow)' }}>{daysUntilExpiry} {daysUntilExpiry === 1 ? 'dag' : 'dagar'}</b>.{' '}
+                <a href="/prenumerera">Förnya här</a> för att inte tappa åtkomsten.
+              </div>
+            </div>
+          )}
 
-      {/* ---- Förnyelsepåminnelse ---- */}
-      {loggedIn && isPaidActive && daysUntilExpiry !== null && (
-        <div className="panel" style={{ marginBottom: 16, border: '1px solid var(--amber)' }}>
-          <div className="subhead">
-            Ditt medlemskap går ut om <b style={{ color: 'var(--amber-glow)' }}>{daysUntilExpiry} {daysUntilExpiry === 1 ? 'dag' : 'dagar'}</b>.{' '}
-            <a href="/prenumerera">Förnya här</a> för att inte tappa åtkomsten.
-          </div>
-        </div>
-      )}
+          {activeLeagues.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
+              {activeLeagues.map(l => (
+                <a key={l.id} href="/profil" className="stat" style={{ textDecoration: 'none', color: 'var(--text)' }}>
+                  🏆 {l.name}
+                </a>
+              ))}
+            </div>
+          )}
 
-      {/* ---- Kompakt genväg om man är med i en liga ---- */}
-      {loggedIn && isPaidActive && activeLeagues.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 10 }}>
-          {activeLeagues.map(l => (
-            <a key={l.id} href="/profil" className="stat" style={{ textDecoration: 'none', color: 'var(--text)' }}>
-              🏆 {l.name}
+          {todayChallenge && (
+            <>
+              <div className="cat-title" style={{ marginTop: 30 }}>Dagens utmaning</div>
+              <a
+                href={todayChallenge.attempted ? '#' : `/daily/${todayChallenge.id}`}
+                className="panel"
+                style={{
+                  display: 'block', marginBottom: 20, textDecoration: 'none', color: 'inherit',
+                  border: '1px solid var(--amber)', cursor: todayChallenge.attempted ? 'default' : 'pointer'
+                }}
+                onClick={e => { if (todayChallenge.attempted) e.preventDefault(); }}
+              >
+                <div className="eyebrow">{todayChallenge.weekday} &middot; spelas bara idag</div>
+                <div style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 22, color: 'var(--amber-glow)', margin: '4px 0' }}>
+                  Dagens Utmaning
+                </div>
+                <div className="subhead">
+                  {todayChallenge.attempted ? 'Redan spelat idag ✓' : 'Ämnet avslöjas när du klickar in — ingen förhandstitt'}
+                </div>
+              </a>
+            </>
+          )}
+
+          {isFridayCatchup && missedChallenges.length > 0 && (
+            <>
+              <div className="cat-title">Fredag — sista chansen den här veckan</div>
+              <p className="subhead" style={{ marginBottom: 10 }}>
+                Du har <b style={{ color: 'var(--amber-glow)' }}>{livesRemaining}</b> liv kvar i år.
+                Imorgon (lördag) avslöjas veckans resultat för alla — sista chansen att hänga med idag.
+              </p>
+              <div className="list-grid" style={{ marginBottom: 20 }}>
+                {missedChallenges.map(c => (
+                  <a
+                    key={c.id}
+                    href={livesRemaining > 0 ? `/daily/${c.id}` : '#'}
+                    className="plaque"
+                    style={{ opacity: livesRemaining > 0 ? 1 : 0.5, cursor: livesRemaining > 0 ? 'pointer' : 'default' }}
+                    onClick={e => { if (livesRemaining <= 0) e.preventDefault(); }}
+                  >
+                    <span className="tag">{c.weekday} &middot; {c.challenge_date}</span>
+                    {livesRemaining > 0 ? 'Missat pass — använd ett liv' : 'Missat pass'}
+                  </a>
+                ))}
+              </div>
+            </>
+          )}
+
+          {isSaturdayReveal && (
+            <a
+              href="/topplistor"
+              className="panel"
+              style={{
+                display: 'block', marginBottom: 20, textDecoration: 'none', color: 'inherit',
+                border: '1px solid var(--amber)'
+              }}
+            >
+              <div className="eyebrow">Lördag &middot; veckans resultat</div>
+              <div style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 20, color: 'var(--amber-glow)', margin: '4px 0' }}>
+                Se var du hamnade →
+              </div>
+              <div className="subhead">Måndagens och onsdagens ämnen är nu avslöjade i topplistan.</div>
             </a>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
-      {/* ---- Dagens utmaning (kräver betalt medlemskap) ---- */}
+      {/* ==== INLOGGAD MEN INTE BETALANDE: kompakt låsruta, INTE hela CTA-kortet ==== */}
       {loggedIn && !isPaidActive && (
         <>
           <div className="cat-title" style={{ marginTop: 30 }}>Dagens utmaning</div>
@@ -232,74 +282,9 @@ export default function Dashboard() {
           </a>
         </>
       )}
-      {todayChallenge && (
-        <>
-          <div className="cat-title" style={{ marginTop: 30 }}>Dagens utmaning</div>
-          <a
-            href={todayChallenge.attempted ? '#' : `/daily/${todayChallenge.id}`}
-            className="panel"
-            style={{
-              display: 'block', marginBottom: 20, textDecoration: 'none', color: 'inherit',
-              border: '1px solid var(--amber)', cursor: todayChallenge.attempted ? 'default' : 'pointer'
-            }}
-            onClick={e => { if (todayChallenge.attempted) e.preventDefault(); }}
-          >
-            <div className="eyebrow">{todayChallenge.weekday} &middot; spelas bara idag</div>
-            <div style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 22, color: 'var(--amber-glow)', margin: '4px 0' }}>
-              Dagens Utmaning
-            </div>
-            <div className="subhead">
-              {todayChallenge.attempted ? 'Redan spelat idag ✓' : 'Ämnet avslöjas när du klickar in — ingen förhandstitt'}
-            </div>
-          </a>
-        </>
-      )}
 
-      {/* ---- Fredag: sista chansen att lösa in liv ---- */}
-      {isFridayCatchup && missedChallenges.length > 0 && (
-        <>
-          <div className="cat-title">Fredag — sista chansen den här veckan</div>
-          <p className="subhead" style={{ marginBottom: 10 }}>
-            Du har <b style={{ color: 'var(--amber-glow)' }}>{livesRemaining}</b> liv kvar i år.
-            Imorgon (lördag) avslöjas veckans resultat för alla — sista chansen att hänga med idag.
-          </p>
-          <div className="list-grid" style={{ marginBottom: 20 }}>
-            {missedChallenges.map(c => (
-              <a
-                key={c.id}
-                href={livesRemaining > 0 ? `/daily/${c.id}` : '#'}
-                className="plaque"
-                style={{ opacity: livesRemaining > 0 ? 1 : 0.5, cursor: livesRemaining > 0 ? 'pointer' : 'default' }}
-                onClick={e => { if (livesRemaining <= 0) e.preventDefault(); }}
-              >
-                <span className="tag">{c.weekday} &middot; {c.challenge_date}</span>
-                {livesRemaining > 0 ? 'Missat pass — använd ett liv' : 'Missat pass'}
-              </a>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* ---- Lördag: teaser mot veckans resultat ---- */}
-      {isSaturdayReveal && (
-        <a
-          href="/topplistor"
-          className="panel"
-          style={{
-            display: 'block', marginBottom: 20, textDecoration: 'none', color: 'inherit',
-            border: '1px solid var(--amber)'
-          }}
-        >
-          <div className="eyebrow">Lördag &middot; veckans resultat</div>
-          <div style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 20, color: 'var(--amber-glow)', margin: '4px 0' }}>
-            Se var du hamnade →
-          </div>
-          <div className="subhead">Måndagens och onsdagens ämnen är nu avslöjade i topplistan.</div>
-        </a>
-      )}
-
-      {/* ---- Spel (fritt spelbara övningslistor) ---- */}
-      <div className="cat-title" style={{ marginTop: 30 }}>Övningsspel</div>
+      {/* ==== GRATIS ÖVNINGSSPEL: synliga direkt för alla, inloggad eller ej ==== */}
+      <div className="cat-title" style={{ marginTop: loggedIn && isPaidActive ? 30 : 0 }}>Övningsspel</div>
       {lists.length === 0 && (
         <p className="subhead" style={{ marginBottom: 20 }}>
           Inga övningsspel är valda att synas just nu.
@@ -322,6 +307,57 @@ export default function Dashboard() {
           </div>
         );
       })}
+
+      {/* ==== MEDLEMSSPEL: gratis men kräver konto, roterar månadsvis ==== */}
+      {loggedIn && memberLists.length > 0 && (
+        <>
+          <div className="cat-title" style={{ marginTop: 30, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: '#7ba7e0' }}>Medlemsspel — den här månaden</span>
+          </div>
+          <p className="subhead" style={{ marginBottom: 12 }}>
+            Gratis eftersom du har ett konto, men bara tillgängliga en begränsad tid — byts ut nästa månad.
+          </p>
+          <div className="list-grid" style={{ marginBottom: 10 }}>
+            {memberLists.map(l => (
+              <a key={l.id} className="plaque" href={`/play/${l.slug}`} style={{ borderColor: '#5b8fd6' }}>
+                <span className="tag" style={{ background: '#243449', color: '#9ab8e6' }}>Medlemsspel</span>
+                {l.title}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ==== ANONYMA BESÖKARE: säljande CTA EFTER att de sett spelen.
+           Inloggade (betalande eller ej) ser bara den mindre
+           "Lås upp Dagens Utmaning"-rutan istället - ingen anledning att
+           visa hela säljpitchen på nytt varje gång man besöker sin egen
+           spelyta. ==== */}
+      {!loggedIn && (
+        <div className="upgrade-card" style={{ marginTop: 30 }}>
+          <span className="upgrade-badge">Obegränsad tillgång</span>
+          <div className="upgrade-title">Vill du tävla på riktigt?</div>
+          <p className="subhead" style={{ maxWidth: 520, marginBottom: 0 }}>
+            104 nya utmaningar om året — två färska varje vecka, dolda tills du klickar in.
+            Skapa egna ligor med kollegorna och jaga topplistan.
+          </p>
+          <ul className="upgrade-perks">
+            <li>✓ <b>Dagens utmaning</b> — måndag och onsdag, hela året</li>
+            <li>✓ <b>Fredag</b> är sista chansen att lösa in ett liv om du missat något</li>
+            <li>✓ <b>Egna privata ligor</b> med vänner och kollegor</li>
+            <li>✓ <b>Topplistor</b> — avslöjas varje lördag, totalt, per liga och per omgång</li>
+          </ul>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
+            <div>
+              <div className="upgrade-price">29 kr<span> / månad</span></div>
+              <div className="subhead" style={{ fontSize: 12, marginTop: 2 }}>eller 299 kr för hela året</div>
+            </div>
+            <a href="/prenumerera" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
+              Bli medlem →
+            </a>
+          </div>
+        </div>
+      )}
 
       <footer className="site">
         {loggedIn
