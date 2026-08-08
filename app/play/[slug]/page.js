@@ -112,11 +112,15 @@ export default function PlayPage() {
       setUserId(uid);
 
       let diff = 'hard';
-      let childPackageId = null;
+      let childPackageActive = false;
       if (uid) {
         const { data: profile } = await supabase.from('profiles').select('difficulty, child_package_id').eq('id', uid).single();
         diff = profile?.difficulty || 'hard';
-        childPackageId = profile?.child_package_id || null;
+        if (profile?.child_package_id) {
+          const { data: pkg } = await supabase.from('child_packages').select('paid_until').eq('id', profile.child_package_id).single();
+          const todayStr = new Date().toISOString().slice(0, 10);
+          childPackageActive = !!pkg?.paid_until && pkg.paid_until >= todayStr;
+        }
       }
       setDifficulty(diff);
       difficultyRef.current = diff;
@@ -129,9 +133,9 @@ export default function PlayPage() {
       if (!listRow) return;
       setList(listRow);
 
-      // Barnpaket-spel kräver att kontot löst in en barnpaket-kod -
+      // Barnpaket-spel kräver en AKTIV (icke utgången) prenumeration -
       // helt separat spärr från medlemsspel/betalning.
-      if (listRow.child_package && !childPackageId) {
+      if (listRow.child_package && !childPackageActive) {
         setChildPackageLocked(true);
         return;
       }
@@ -363,8 +367,8 @@ export default function PlayPage() {
           <span className="upgrade-badge">Barnpaket krävs</span>
           <div className="upgrade-title">Det här spelet ingår i Barnpaketet</div>
           <p className="subhead" style={{ marginBottom: 18 }}>
-            En förälder köper Barnpaketet en gång (99 kr) och får en kod — lös in den under din profil
-            för att låsa upp de 50 spelen permanent.
+            En förälder köper Barnpaketet (99 kr/år) och paketet aktiveras av oss — ingen kod behövs.
+            Kontot är kanske inte aktiverat än, eller så har prenumerationen gått ut och behöver förnyas.
           </p>
           <a href="/prenumerera" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
             Läs mer →

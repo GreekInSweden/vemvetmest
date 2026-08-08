@@ -114,12 +114,17 @@ export default function Dashboard() {
         .single();
 
       if (profile?.child_package_id) {
-        const { data: childGames } = await supabase
-          .from('game_lists')
-          .select('id, slug, title, subtitle')
-          .eq('child_package', true)
-          .order('sort_order');
-        setChildLists(childGames || []);
+        const { data: pkg } = await supabase.from('child_packages').select('paid_until').eq('id', profile.child_package_id).single();
+        const todayStr = ymd(stockholmNow());
+        const childActive = !!pkg?.paid_until && pkg.paid_until >= todayStr;
+        if (childActive) {
+          const { data: childGames } = await supabase
+            .from('game_lists')
+            .select('id, slug, title, subtitle')
+            .eq('child_package', true)
+            .order('sort_order');
+          setChildLists(childGames || []);
+        }
       }
 
       setUsername(profile?.username || '');
@@ -329,7 +334,7 @@ export default function Dashboard() {
         <>
           <div className="cat-title" style={{ marginTop: 0, color: '#e0b37f' }}>Dina barnpaket-spel</div>
           <p className="subhead" style={{ marginBottom: 12 }}>
-            Permanenta — försvinner aldrig, oavsett vad som händer med resten av kontot.
+            Låst upp genom en aktiv barnpaket-prenumeration (99 kr/år) — biblioteket växer med 50 nya spel varje år ni förnyar.
           </p>
           <div className="list-grid" style={{ marginBottom: 10 }}>
             {childLists.map(l => (

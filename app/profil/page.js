@@ -32,6 +32,7 @@ export default function ProfilePage() {
   const [showFamilyJoin, setShowFamilyJoin] = useState(false);
 
   const [hasChildPackage, setHasChildPackage] = useState(false); // gäller MITT konto (om jag är barnet)
+  const [myChildPaidUntil, setMyChildPaidUntil] = useState(null);
   const [myChildren, setMyChildren] = useState([]); // ALLA barn (väntande + aktiva), om JAG är förälder
   const [isParent, setIsParent] = useState(false);
   const [resetPasswordFor, setResetPasswordFor] = useState(null); // childProfileId eller null
@@ -42,10 +43,14 @@ export default function ProfilePage() {
   async function loadChildPackages(uid) {
     const { data: myProfile } = await supabase.from('profiles').select('child_package_id').eq('id', uid).single();
     setHasChildPackage(!!myProfile?.child_package_id);
+    if (myProfile?.child_package_id) {
+      const { data: myPkg } = await supabase.from('child_packages').select('paid_until').eq('id', myProfile.child_package_id).single();
+      setMyChildPaidUntil(myPkg?.paid_until || null);
+    }
 
     const { data: parentOf } = await supabase
       .from('child_packages')
-      .select('id, child_username_requested, activated, child_profile_id')
+      .select('id, child_username_requested, activated, child_profile_id, paid_until')
       .eq('parent_id', uid);
     setIsParent((parentOf || []).length > 0);
     setMyChildren(parentOf || []);
@@ -466,7 +471,9 @@ export default function ProfilePage() {
 
       {hasChildPackage && (
         <p className="subhead" style={{ marginBottom: 14 }}>
-          ✓ Det här kontot har låst upp de 50 barnspelen permanent.
+          {myChildPaidUntil && myChildPaidUntil >= new Date().toISOString().slice(0, 10)
+            ? <>✓ Barnpaketet är aktivt till och med <b style={{ color: 'var(--amber-glow)' }}>{myChildPaidUntil}</b>.</>
+            : <>Barnpaketet har gått ut{myChildPaidUntil ? ` (${myChildPaidUntil})` : ''} — be din förälder förnya det.</>}
         </p>
       )}
 
@@ -480,16 +487,20 @@ export default function ProfilePage() {
       {isParent && (
         <>
           <p className="subhead" style={{ marginBottom: 10 }}>Barnkonton du skapat:</p>
-          {myChildren.map(c => (
+          {myChildren.map(c => {
+            const childActive = c.paid_until && c.paid_until >= new Date().toISOString().slice(0, 10);
+            return (
             <div key={c.id} className="panel" style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                 <div>
                   <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, textTransform: 'uppercase' }}>
                     {c.child_username_requested}
                   </span>{' '}
-                  {c.activated
-                    ? <span className="tag" style={{ background: '#2a3f2a', color: '#7fc98f' }}>Aktivt</span>
-                    : <span className="tag" style={{ background: '#3a2c1a', color: '#e0b37f' }}>Väntar på betalning</span>}
+                  {!c.activated
+                    ? <span className="tag" style={{ background: '#3a2c1a', color: '#e0b37f' }}>Väntar på betalning</span>
+                    : childActive
+                      ? <span className="tag" style={{ background: '#2a3f2a', color: '#7fc98f' }}>Aktivt t.o.m. {c.paid_until}</span>
+                      : <span className="tag" style={{ background: '#3a1a1a', color: '#e09090' }}>Har gått ut — förnya i admin</span>}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {c.activated && (
@@ -523,7 +534,8 @@ export default function ProfilePage() {
                 </form>
               )}
             </div>
-          ))}
+            );
+          })}
         </>
       )}
       {resetMsg && <div className="toast" style={{ marginTop: 4 }}>{resetMsg}</div>}

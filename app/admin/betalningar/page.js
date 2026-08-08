@@ -15,12 +15,13 @@ export default function AdminBetalningar() {
   // pendingAsChild: { childProfileId: {id, ...} } - om raden SJÄLV är ett väntande barnkonto
   const [pendingAsParent, setPendingAsParent] = useState({});
   const [pendingAsChild, setPendingAsChild] = useState({});
+  const [activePackages, setActivePackages] = useState({}); // { childProfileId: { id, paid_until } }
 
-  async function loadPendingChildInfo(profileIds) {
-    if (profileIds.length === 0) { setPendingAsParent({}); setPendingAsChild({}); return; }
+  async function loadPendingChildInfo(profileIds, childPackageIds) {
+    if (profileIds.length === 0) { setPendingAsParent({}); setPendingAsChild({}); setActivePackages({}); return; }
     const { data: pending } = await supabase
       .from('child_packages')
-      .select('id, parent_id, child_username_requested, child_profile_id')
+      .select('id, parent_id, child_username_requested, child_profile_id, paid_until')
       .eq('activated', false)
       .or(`parent_id.in.(${profileIds.join(',')}),child_profile_id.in.(${profileIds.join(',')})`);
 
@@ -33,28 +34,49 @@ export default function AdminBetalningar() {
     });
     setPendingAsParent(byParent);
     setPendingAsChild(byChild);
+
+    const validPkgIds = (childPackageIds || []).filter(Boolean);
+    if (validPkgIds.length > 0) {
+      const { data: active } = await supabase
+        .from('child_packages')
+        .select('id, child_profile_id, paid_until')
+        .in('id', validPkgIds)
+        .eq('activated', true);
+      const byChildActive = {};
+      (active || []).forEach(p => { byChildActive[p.child_profile_id] = p; });
+      setActivePackages(byChildActive);
+    } else {
+      setActivePackages({});
+    }
   }
 
   async function loadRecent() {
     setPaymentSearching(true);
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, paid_until, is_child, created_at')
+      .select('id, username, paid_until, is_child, created_at, child_package_id')
       .order('created_at', { ascending: false })
       .limit(20);
     setPaymentSearching(false);
     setPaymentResults(data || []);
     setBrowsing(true);
-    await loadPendingChildInfo((data || []).map(u => u.id));
+    await loadPendingChildInfo((data || []).map(u => u.id), (data || []).map(u => u.child_package_id));
   }
 
   useEffect(() => { loadRecent(); }, []);
 
   async function activateChildPackage(packageId, childProfileId, parentId, childUsername) {
-    const ok = window.confirm(`Aktivera barnpaket (99 kr) för "${childUsername}"?`);
+    const ok = window.confirm(`Aktivera barnpaket (99 kr/år) för "${childUsername}"?`);
     if (!ok) return;
     setPaymentMsg('');
-    const { error: pkgError } = await supabase.from('child_packages').update({ activated: true }).eq('id', packageId);
+    const paidUntil = new Date();
+    paidUntil.setDate(paidUntil.getDate() + 366);
+    const paidUntilStr = paidUntil.toISOString().slice(0, 10);
+
+    const { error: pkgError } = await supabase
+      .from('child_packages')
+      .update({ activated: true, paid_until: paidUntilStr })
+      .eq('id', packageId);
     if (pkgError) {
       setPaymentMsg('Kunde inte aktivera: ' + pkgError.message);
       return;
@@ -66,7 +88,24 @@ export default function AdminBetalningar() {
     }
     setPendingAsParent(prev => ({ ...prev, [parentId]: (prev[parentId] || []).filter(c => c.id !== packageId) }));
     setPendingAsChild(prev => { const next = { ...prev }; delete next[childProfileId]; return next; });
-    setPaymentMsg('Barnpaketet är aktiverat — de 50 spelen är nu upplåsta på barnets konto.');
+    setPaymentMsg(`Barnpaketet är aktiverat till och med ${paidUntilStr}.`);
+  }
+
+  async function renewChildPackage(packageId, childUsername) {
+    const ok = window.confirm(`Förnya barnpaket (99 kr/år) för "${childUsername}"? Ger tillgång till hela biblioteket plus årets nya spel i ytterligare ett år.`);
+    if (!ok) return;
+    setPaymentMsg('');
+    const paidUntil = new Date();
+    paidUntil.setDate(paidUntil.getDate() + 366);
+    const paidUntilStr = paidUntil.toISOString().slice(0, 10);
+
+    const { error } = await supabase.from('child_packages').update({ paid_until: paidUntilStr }).eq('id', packageId);
+    if (error) {
+      setPaymentMsg('Kunde inte förnya: ' + error.message);
+      return;
+    }
+    setPaymentResults(prev => [...prev]); // trigger re-render, faktiska data hämtas om vid nästa sök
+    setPaymentMsg(`Förnyat till och med ${paidUntilStr}. Sök fram kontot igen för att se uppdaterat datum.`);
   }
 
   async function searchPayments(e) {
@@ -78,7 +117,7 @@ export default function AdminBetalningar() {
     setPaymentSearching(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, paid_until, is_child, created_at')
+      .select('id, username, paid_until, is_child, created_at, child_package_id')
       .ilike('username', `%${term}%`)
       .limit(20);
     setPaymentSearching(false);
@@ -87,7 +126,7 @@ export default function AdminBetalningar() {
       return;
     }
     setPaymentResults(data || []);
-    await loadPendingChildInfo((data || []).map(u => u.id));
+    await loadPendingChildInfo((data || []).map(u => u.id), (data || []).map(u => u.child_package_id));
   }
 
   async function markPaid(userId, planKey, username) {
@@ -202,6 +241,8 @@ export default function AdminBetalningar() {
       {paymentResults.map(u => {
         const isActive = u.paid_until && u.paid_until >= new Date().toISOString().slice(0, 10);
         const myPendingPackage = pendingAsChild[u.id]; // om DEN HÄR raden själv är ett väntande barn
+        const myActivePackage = activePackages[u.id]; // om DEN HÄR raden redan har ett aktiverat barnpaket
+        const childPkgActive = myActivePackage?.paid_until && myActivePackage.paid_until >= new Date().toISOString().slice(0, 10);
         return (
           <div key={u.id} className="panel" style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
@@ -223,7 +264,20 @@ export default function AdminBetalningar() {
                   style={{ width: 'auto', borderColor: '#c98f4f', color: '#e0b37f' }}
                   onClick={() => activateChildPackage(myPendingPackage.id, myPendingPackage.child_profile_id, myPendingPackage.parent_id, u.username)}
                 >
-                  Aktivera barnpaket (99 kr)
+                  Aktivera barnpaket (99 kr/år)
+                </button>
+              </div>
+            ) : myActivePackage ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span className="subhead" style={{ fontSize: 12.5 }}>
+                  Barnpaket {childPkgActive ? `aktivt t.o.m. ${myActivePackage.paid_until}` : `gick ut ${myActivePackage.paid_until}`}.
+                </span>
+                <button
+                  className="btn btn-ghost"
+                  style={{ width: 'auto', borderColor: '#c98f4f', color: '#e0b37f' }}
+                  onClick={() => renewChildPackage(myActivePackage.id, u.username)}
+                >
+                  Förnya barnpaket (99 kr/år)
                 </button>
               </div>
             ) : (
@@ -261,7 +315,7 @@ export default function AdminBetalningar() {
                       style={{ width: 'auto', borderColor: '#c98f4f', color: '#e0b37f', padding: '4px 12px', fontSize: 12 }}
                       onClick={() => activateChildPackage(c.id, c.child_profile_id, u.id, c.child_username_requested)}
                     >
-                      Aktivera barnpaket (99 kr)
+                      Aktivera barnpaket (99 kr/år)
                     </button>
                   </div>
                 ))}

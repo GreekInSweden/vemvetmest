@@ -151,7 +151,7 @@ export default function PrenumereraPage() {
       <div className="upgrade-card" style={{ maxWidth: 480, margin: '0 auto 24px', textAlign: 'center' }}>
         {plan === 'family' && <span className="upgrade-badge">4 konton — en på oss</span>}
         {isCompany && <span className="upgrade-badge">Skalbart för team och företag</span>}
-        {isChild && <span className="upgrade-badge">Permanent — försvinner aldrig</span>}
+        {isChild && <span className="upgrade-badge">Växande bibliotek — 50 nya spel/år</span>}
 
         {isCompany && (
           <div style={{ marginBottom: 16 }}>
@@ -233,13 +233,13 @@ export default function PrenumereraPage() {
         )}
 
         <div className="upgrade-price" style={{ fontSize: 44, marginBottom: 4 }}>
-          {amount} kr{isCompany && <span style={{ fontSize: 15 }}> / år</span>}
+          {amount} kr{(isCompany || isChild) && <span style={{ fontSize: 15 }}> / år</span>}
         </div>
         <p className="subhead" style={{ marginBottom: 20 }}>
           {plan === 'monthly' ? 'Gäller i cirka en månad från betalning.' :
            plan === 'yearly' ? 'Gäller i ett helt år från betalning.' :
            plan === 'family' ? '4 fristående konton i ett helt år. Du blir ägare av familjeplanen och får en kod att dela.' :
-           isChild ? '50 utvalda spel anpassade för barn — permanent tillgång, ingen förnyelse, försvinner aldrig.' :
+           isChild ? '50 utvalda spel anpassade för barn — 99 kr/år. Biblioteket växer med 50 nya spel varje år ni förnyar, och ni behåller alla tidigare års spel så länge prenumerationen är aktiv.' :
            `${seats} fristående konton i ett helt år, samlade i en egen privat liga med gemensam topplista.`}
         </p>
 
