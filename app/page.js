@@ -283,8 +283,31 @@ export default function Dashboard() {
         </>
       )}
 
+      {/* ==== MEDLEMSSPEL: gratis men kräver konto, roterar månadsvis.
+           Visas FÖRE de vanliga övningsspelen - ska kännas som en synlig
+           belöning för att ha skapat konto, inte något man hittar efter
+           att ha scrollat förbi det alla redan ser. ==== */}
+      {loggedIn && memberLists.length > 0 && (
+        <>
+          <div className="cat-title" style={{ marginTop: loggedIn && isPaidActive ? 30 : 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: '#7ba7e0' }}>Medlemsspel — den här månaden</span>
+          </div>
+          <p className="subhead" style={{ marginBottom: 12 }}>
+            Gratis eftersom du har ett konto, men bara tillgängliga en begränsad tid — byts ut nästa månad.
+          </p>
+          <div className="list-grid" style={{ marginBottom: 10 }}>
+            {memberLists.map(l => (
+              <a key={l.id} className="plaque" href={`/play/${l.slug}`} style={{ borderColor: '#5b8fd6' }}>
+                <span className="tag" style={{ background: '#243449', color: '#9ab8e6' }}>Medlemsspel</span>
+                {l.title}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+
       {/* ==== GRATIS ÖVNINGSSPEL: synliga direkt för alla, inloggad eller ej ==== */}
-      <div className="cat-title" style={{ marginTop: loggedIn && isPaidActive ? 30 : 0 }}>Övningsspel</div>
+      <div className="cat-title" style={{ marginTop: (loggedIn && isPaidActive) || (loggedIn && memberLists.length > 0) ? 30 : 0 }}>Övningsspel</div>
       {lists.length === 0 && (
         <p className="subhead" style={{ marginBottom: 20 }}>
           Inga övningsspel är valda att synas just nu.
@@ -307,26 +330,6 @@ export default function Dashboard() {
           </div>
         );
       })}
-
-      {/* ==== MEDLEMSSPEL: gratis men kräver konto, roterar månadsvis ==== */}
-      {loggedIn && memberLists.length > 0 && (
-        <>
-          <div className="cat-title" style={{ marginTop: 30, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: '#7ba7e0' }}>Medlemsspel — den här månaden</span>
-          </div>
-          <p className="subhead" style={{ marginBottom: 12 }}>
-            Gratis eftersom du har ett konto, men bara tillgängliga en begränsad tid — byts ut nästa månad.
-          </p>
-          <div className="list-grid" style={{ marginBottom: 10 }}>
-            {memberLists.map(l => (
-              <a key={l.id} className="plaque" href={`/play/${l.slug}`} style={{ borderColor: '#5b8fd6' }}>
-                <span className="tag" style={{ background: '#243449', color: '#9ab8e6' }}>Medlemsspel</span>
-                {l.title}
-              </a>
-            ))}
-          </div>
-        </>
-      )}
 
       {/* ==== ANONYMA BESÖKARE: säljande CTA EFTER att de sett spelen.
            Inloggade (betalande eller ej) ser bara den mindre
