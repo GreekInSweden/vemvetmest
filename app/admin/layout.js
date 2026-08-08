@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 
-const LINKS = [
+const FULL_LINKS = [
   { href: '/admin', label: 'Översikt' },
   { href: '/admin/betalningar', label: 'Betalningar' },
   { href: '/admin/ligor', label: 'Ligor' },
@@ -12,10 +12,14 @@ const LINKS = [
   { href: '/admin/statistik', label: 'Statistik' }
 ];
 
+const SEMI_ADMIN_LINKS = [
+  { href: '/admin/spel', label: 'Spel' }
+];
+
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [status, setStatus] = useState('loading'); // loading | denied | ok
+  const [status, setStatus] = useState('loading'); // loading | denied | full | semi
 
   useEffect(() => {
     async function check() {
@@ -23,13 +27,27 @@ export default function AdminLayout({ children }) {
       if (!sessionData.session) { router.push('/login'); return; }
       const { data: profile } = await supabase
         .from('profiles')
-        .select('is_admin')
+        .select('is_admin, is_semi_admin')
         .eq('id', sessionData.session.user.id)
         .single();
-      setStatus(profile?.is_admin ? 'ok' : 'denied');
+
+      if (profile?.is_admin) {
+        setStatus('full');
+      } else if (profile?.is_semi_admin) {
+        // Semi-admin får bara vistas under /admin/spel - skickas
+        // tillbaka dit om de på något sätt hamnar någon annanstans
+        // (t.ex. genom att skriva en annan admin-url direkt).
+        if (!pathname.startsWith('/admin/spel')) {
+          router.replace('/admin/spel');
+          return;
+        }
+        setStatus('semi');
+      } else {
+        setStatus('denied');
+      }
     }
     check();
-  }, [router]);
+  }, [router, pathname]);
 
   if (status === 'loading') {
     return <div className="wrap"><p className="subhead">Laddar…</p></div>;
@@ -44,6 +62,8 @@ export default function AdminLayout({ children }) {
     );
   }
 
+  const links = status === 'full' ? FULL_LINKS : SEMI_ADMIN_LINKS;
+
   return (
     <div className="wrap">
       <div className="topbar">
@@ -51,13 +71,13 @@ export default function AdminLayout({ children }) {
       </div>
 
       <header style={{ marginBottom: 20 }}>
-        <div className="eyebrow">Adminpanel</div>
+        <div className="eyebrow">{status === 'semi' ? 'Adminpanel — spel' : 'Adminpanel'}</div>
         <h1 className="brand" style={{ fontSize: 32 }}>Kan Du Alla</h1>
       </header>
 
       {/* ---- Meny mellan admin-delarna ---- */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap' }}>
-        {LINKS.map(l => (
+        {links.map(l => (
           <a
             key={l.href}
             href={l.href}
