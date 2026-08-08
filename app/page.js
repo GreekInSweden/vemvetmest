@@ -109,7 +109,7 @@ export default function Dashboard() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, is_admin, paid_until, child_package_id')
+        .select('username, is_admin, is_semi_admin, paid_until, child_package_id')
         .eq('id', uid)
         .single();
 
@@ -128,7 +128,7 @@ export default function Dashboard() {
       }
 
       setUsername(profile?.username || '');
-      setIsAdmin(!!profile?.is_admin);
+      setIsAdmin(!!profile?.is_admin || !!profile?.is_semi_admin);
 
       const todayStr = ymd(stockholmNow());
       const paidUntil = profile?.paid_until || null;
