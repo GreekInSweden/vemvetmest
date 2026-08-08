@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabaseClient';
 import { PLAN_PRICES, COMPANY_PRICE_PER_SEAT, COMPANY_MIN_SEATS } from '../../../lib/swish';
 
@@ -10,7 +10,45 @@ export default function AdminBetalningar() {
   const [paymentSearching, setPaymentSearching] = useState(false);
   const [paymentMsg, setPaymentMsg] = useState('');
   const [companySeats, setCompanySeats] = useState({});
-  const [pendingChildren, setPendingChildren] = useState({}); // { parentId: [{id, child_username_requested, child_profile_id}] }
+  const [browsing, setBrowsing] = useState(true); // visar "senaste konton" tills man söker
+  // pendingAsParent: { parentId: [{id, child_username_requested, child_profile_id}] }
+  // pendingAsChild: { childProfileId: {id, ...} } - om raden SJÄLV är ett väntande barnkonto
+  const [pendingAsParent, setPendingAsParent] = useState({});
+  const [pendingAsChild, setPendingAsChild] = useState({});
+
+  async function loadPendingChildInfo(profileIds) {
+    if (profileIds.length === 0) { setPendingAsParent({}); setPendingAsChild({}); return; }
+    const { data: pending } = await supabase
+      .from('child_packages')
+      .select('id, parent_id, child_username_requested, child_profile_id')
+      .eq('activated', false)
+      .or(`parent_id.in.(${profileIds.join(',')}),child_profile_id.in.(${profileIds.join(',')})`);
+
+    const byParent = {};
+    const byChild = {};
+    (pending || []).forEach(p => {
+      if (!byParent[p.parent_id]) byParent[p.parent_id] = [];
+      byParent[p.parent_id].push(p);
+      if (p.child_profile_id) byChild[p.child_profile_id] = p;
+    });
+    setPendingAsParent(byParent);
+    setPendingAsChild(byChild);
+  }
+
+  async function loadRecent() {
+    setPaymentSearching(true);
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, username, paid_until, is_child, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    setPaymentSearching(false);
+    setPaymentResults(data || []);
+    setBrowsing(true);
+    await loadPendingChildInfo((data || []).map(u => u.id));
+  }
+
+  useEffect(() => { loadRecent(); }, []);
 
   async function activateChildPackage(packageId, childProfileId, parentId) {
     setPaymentMsg('');
@@ -24,7 +62,8 @@ export default function AdminBetalningar() {
       setPaymentMsg('Paketet markerades betalt, men kontot kunde inte kopplas: ' + profileError.message);
       return;
     }
-    setPendingChildren(prev => ({ ...prev, [parentId]: (prev[parentId] || []).filter(c => c.id !== packageId) }));
+    setPendingAsParent(prev => ({ ...prev, [parentId]: (prev[parentId] || []).filter(c => c.id !== packageId) }));
+    setPendingAsChild(prev => { const next = { ...prev }; delete next[childProfileId]; return next; });
     setPaymentMsg('Barnpaketet är aktiverat — de 50 spelen är nu upplåsta på barnets konto.');
   }
 
@@ -32,11 +71,12 @@ export default function AdminBetalningar() {
     e.preventDefault();
     setPaymentMsg('');
     const term = paymentSearch.trim();
-    if (!term) { setPaymentResults([]); return; }
+    if (!term) { await loadRecent(); return; }
+    setBrowsing(false);
     setPaymentSearching(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, paid_until, is_child')
+      .select('id, username, paid_until, is_child, created_at')
       .ilike('username', `%${term}%`)
       .limit(20);
     setPaymentSearching(false);
@@ -45,20 +85,7 @@ export default function AdminBetalningar() {
       return;
     }
     setPaymentResults(data || []);
-
-    if (data && data.length > 0) {
-      const { data: pending } = await supabase
-        .from('child_packages')
-        .select('id, parent_id, child_username_requested, child_profile_id')
-        .in('parent_id', data.map(u => u.id))
-        .eq('activated', false);
-      const grouped = {};
-      (pending || []).forEach(p => {
-        if (!grouped[p.parent_id]) grouped[p.parent_id] = [];
-        grouped[p.parent_id].push(p);
-      });
-      setPendingChildren(grouped);
-    }
+    await loadPendingChildInfo((data || []).map(u => u.id));
   }
 
   async function markPaid(userId, planKey) {
@@ -152,7 +179,7 @@ export default function AdminBetalningar() {
         <input
           className="field"
           type="text"
-          placeholder="Sök på användarnamn…"
+          placeholder="Sök på användarnamn… (lämna tomt för senaste kontona)"
           value={paymentSearch}
           onChange={e => setPaymentSearch(e.target.value)}
         />
@@ -162,8 +189,13 @@ export default function AdminBetalningar() {
       </form>
       {paymentMsg && <div className="toast" style={{ marginBottom: 10 }}>{paymentMsg}</div>}
 
+      <p className="subhead" style={{ fontSize: 12, marginBottom: 10 }}>
+        {browsing ? 'Visar de 20 senast registrerade kontona — sök om du letar efter någon specifik.' : `${paymentResults.length} träffar.`}
+      </p>
+
       {paymentResults.map(u => {
         const isActive = u.paid_until && u.paid_until >= new Date().toISOString().slice(0, 10);
+        const myPendingPackage = pendingAsChild[u.id]; // om DEN HÄR raden själv är ett väntande barn
         return (
           <div key={u.id} className="panel" style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
@@ -176,32 +208,46 @@ export default function AdminBetalningar() {
                   : 'Har aldrig betalat'}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-              {Object.entries(PLAN_PRICES).map(([key, val]) => (
-                <button key={key} className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => markPaid(u.id, key)}>
-                  {val.label} ({val.amount} kr)
-                </button>
-              ))}
-              <span style={{ borderLeft: '1px solid var(--line)', height: 24, margin: '0 4px' }} />
-              <input
-                type="number"
-                min={COMPANY_MIN_SEATS}
-                value={companySeats[u.id] ?? COMPANY_MIN_SEATS}
-                onChange={e => setCompanySeats(prev => ({ ...prev, [u.id]: e.target.value }))}
-                className="field"
-                style={{ width: 60, padding: '8px 10px' }}
-              />
-              <button className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => markPaidCompany(u.id, u.username)}>
-                Företag ({(Math.max(COMPANY_MIN_SEATS, parseInt(companySeats[u.id] || COMPANY_MIN_SEATS, 10))) * COMPANY_PRICE_PER_SEAT} kr)
-              </button>
-            </div>
 
-            {pendingChildren[u.id]?.length > 0 && (
+            {myPendingPackage ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="subhead" style={{ fontSize: 12.5 }}>Väntar på aktivering av barnpaket.</span>
+                <button
+                  className="btn btn-ghost"
+                  style={{ width: 'auto', borderColor: '#c98f4f', color: '#e0b37f' }}
+                  onClick={() => activateChildPackage(myPendingPackage.id, myPendingPackage.child_profile_id, myPendingPackage.parent_id)}
+                >
+                  Aktivera barnpaket (99 kr)
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {Object.entries(PLAN_PRICES).map(([key, val]) => (
+                  <button key={key} className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => markPaid(u.id, key)}>
+                    {val.label} ({val.amount} kr)
+                  </button>
+                ))}
+                <span style={{ borderLeft: '1px solid var(--line)', height: 24, margin: '0 4px' }} />
+                <input
+                  type="number"
+                  min={COMPANY_MIN_SEATS}
+                  value={companySeats[u.id] ?? COMPANY_MIN_SEATS}
+                  onChange={e => setCompanySeats(prev => ({ ...prev, [u.id]: e.target.value }))}
+                  className="field"
+                  style={{ width: 60, padding: '8px 10px' }}
+                />
+                <button className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => markPaidCompany(u.id, u.username)}>
+                  Företag ({(Math.max(COMPANY_MIN_SEATS, parseInt(companySeats[u.id] || COMPANY_MIN_SEATS, 10))) * COMPANY_PRICE_PER_SEAT} kr)
+                </button>
+              </div>
+            )}
+
+            {pendingAsParent[u.id]?.length > 0 && (
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
                 <div className="subhead" style={{ fontSize: 11.5, marginBottom: 6, color: '#e0b37f' }}>
                   Väntande barnkonton (skapade av {u.username}):
                 </div>
-                {pendingChildren[u.id].map(c => (
+                {pendingAsParent[u.id].map(c => (
                   <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>{c.child_username_requested}</span>
                     <button
