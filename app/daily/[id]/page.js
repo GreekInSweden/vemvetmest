@@ -278,6 +278,7 @@ export default function DailyPlayPage() {
         setShake(true);
         setTimeout(() => setShake(false), 300);
         showToast('Fel — det är inte nästa svar i ordningen.');
+        setGuess('');
         return;
       }
 
@@ -313,6 +314,7 @@ export default function DailyPlayPage() {
       setShake(true);
       setTimeout(() => setShake(false), 300);
       showToast('Inte med på listan.');
+      setGuess('');
       return;
     }
 
