@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [categories, setCategories] = useState([]);
   const [lists, setLists] = useState([]);
   const [memberLists, setMemberLists] = useState([]);
+  const [childLists, setChildLists] = useState([]);
   const [activeLeagues, setActiveLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -108,9 +109,19 @@ export default function Dashboard() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, is_admin, paid_until')
+        .select('username, is_admin, paid_until, child_package_id')
         .eq('id', uid)
         .single();
+
+      if (profile?.child_package_id) {
+        const { data: childGames } = await supabase
+          .from('game_lists')
+          .select('id, slug, title, subtitle')
+          .eq('child_package', true)
+          .order('sort_order');
+        setChildLists(childGames || []);
+      }
+
       setUsername(profile?.username || '');
       setIsAdmin(!!profile?.is_admin);
 
@@ -280,6 +291,24 @@ export default function Dashboard() {
             </div>
             <div className="subhead">Dagens utmaning, ligor och topplistor kräver ett medlemskap. Tryck här för att betala.</div>
           </a>
+        </>
+      )}
+
+      {/* ==== BARNPAKET: permanenta spel för konton som löst in en kod ==== */}
+      {loggedIn && childLists.length > 0 && (
+        <>
+          <div className="cat-title" style={{ marginTop: 0, color: '#e0b37f' }}>Dina barnpaket-spel</div>
+          <p className="subhead" style={{ marginBottom: 12 }}>
+            Permanenta — försvinner aldrig, oavsett vad som händer med resten av kontot.
+          </p>
+          <div className="list-grid" style={{ marginBottom: 10 }}>
+            {childLists.map(l => (
+              <a key={l.id} className="plaque" href={`/play/${l.slug}`} style={{ borderColor: '#c98f4f' }}>
+                <span className="tag" style={{ background: '#3a2c1a', color: '#e0b37f' }}>Barnpaket</span>
+                {l.title}
+              </a>
+            ))}
+          </div>
         </>
       )}
 
