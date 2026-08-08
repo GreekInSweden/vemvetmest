@@ -20,6 +20,7 @@ export default function AdminPage() {
   const [checkedMember, setCheckedMember] = useState(new Set());
   const [checkedPool, setCheckedPool] = useState(new Set());
   const [openFolder, setOpenFolder] = useState(null); // 'featured' | 'member' | 'pool' | 'untested' | null
+  const [showLeagues, setShowLeagues] = useState(false);
   const [launched, setLaunched] = useState(false);
   const [launchMsg, setLaunchMsg] = useState('');
   const [dailyUsage, setDailyUsage] = useState({});
@@ -76,6 +77,7 @@ export default function AdminPage() {
       .limit(20);
 
     setPending(pendingLeagues || []);
+    if (pendingLeagues && pendingLeagues.length > 0) setShowLeagues(true);
     setApproved(approvedLeagues || []);
 
     const { data: cats } = await supabase.from('categories').select('*').order('sort_order');
@@ -449,35 +451,61 @@ export default function AdminPage() {
         );
       })}
 
-      <div className="cat-title" style={{ marginTop: 40 }}>Godkänn ligor</div>
+      {/* ---- Ligor: klickbar mapp, badge visar antal som väntar ---- */}
+      <div style={{ marginBottom: 8 }}>
+        <button
+          className="plaque"
+          style={{
+            width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8,
+            borderColor: showLeagues ? (pending.length > 0 ? 'var(--miss)' : 'var(--line)') : undefined
+          }}
+          onClick={() => setShowLeagues(s => !s)}
+        >
+          <span>{showLeagues ? '📂' : '📁'}</span>
+          <span style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', fontSize: 13 }}>Ligor</span>
+          {pending.length > 0 && (
+            <span style={{
+              background: 'var(--miss)', color: '#fff', borderRadius: 10, padding: '1px 8px',
+              fontSize: 11, fontWeight: 700
+            }}>
+              {pending.length} väntar
+            </span>
+          )}
+          <span className="subhead" style={{ marginLeft: 'auto', fontSize: 12 }}>{approved.length} godkända</span>
+        </button>
 
-      <div className="cat-title">Väntar på godkännande ({pending.length})</div>
-      {pending.length === 0 && <p className="subhead" style={{ marginBottom: 20 }}>Inga väntande ansökningar.</p>}
-      {pending.map(l => (
-        <div key={l.id} className="panel" style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 16, textTransform: 'uppercase' }}>{l.name}</div>
-            <div className="subhead" style={{ fontSize: 12 }}>Skapad {new Date(l.created_at).toLocaleDateString('sv-SE')}</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-primary" style={{ width: 'auto' }} onClick={() => approve(l.id)}>Godkänn</button>
-            <button className="btn btn-ghost" onClick={() => reject(l.id)}>Neka</button>
-            <button className="btn btn-ghost" style={{ color: 'var(--miss)' }} onClick={() => remove(l.id, l.name)}>Ta bort</button>
-          </div>
-        </div>
-      ))}
+        {showLeagues && (
+          <div className="panel" style={{ marginTop: 6 }}>
+            <div className="cat-title" style={{ marginTop: 0 }}>Väntar på godkännande ({pending.length})</div>
+            {pending.length === 0 && <p className="subhead" style={{ marginBottom: 20 }}>Inga väntande ansökningar.</p>}
+            {pending.map(l => (
+              <div key={l.id} className="panel" style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 16, textTransform: 'uppercase' }}>{l.name}</div>
+                  <div className="subhead" style={{ fontSize: 12 }}>Skapad {new Date(l.created_at).toLocaleDateString('sv-SE')}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="btn btn-primary" style={{ width: 'auto' }} onClick={() => approve(l.id)}>Godkänn</button>
+                  <button className="btn btn-ghost" onClick={() => reject(l.id)}>Neka</button>
+                  <button className="btn btn-ghost" style={{ color: 'var(--miss)' }} onClick={() => remove(l.id, l.name)}>Ta bort</button>
+                </div>
+              </div>
+            ))}
 
-      <div className="cat-title" style={{ marginTop: 30 }}>Senast godkända</div>
-      {approved.length === 0 && <p className="subhead">Inga godkända ligor än.</p>}
-      {approved.map(l => (
-        <div key={l.id} className="panel" style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, textTransform: 'uppercase' }}>{l.name}</div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <div className="stat" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{l.invite_code}</div>
-            <button className="btn btn-ghost" style={{ color: 'var(--miss)' }} onClick={() => remove(l.id, l.name)}>Ta bort</button>
+            <div className="cat-title" style={{ marginTop: 20 }}>Senast godkända</div>
+            {approved.length === 0 && <p className="subhead">Inga godkända ligor än.</p>}
+            {approved.map(l => (
+              <div key={l.id} className="panel" style={{ marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, textTransform: 'uppercase' }}>{l.name}</div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <div className="stat" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{l.invite_code}</div>
+                  <button className="btn btn-ghost" style={{ color: 'var(--miss)' }} onClick={() => remove(l.id, l.name)}>Ta bort</button>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      ))}
+        )}
+      </div>
 
       {/* ---- Synliga, medlems- och poolspel ---- */}
       <header style={{ margin: '40px 0 20px' }}>
