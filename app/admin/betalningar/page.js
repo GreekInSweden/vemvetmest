@@ -10,6 +10,24 @@ export default function AdminBetalningar() {
   const [paymentSearching, setPaymentSearching] = useState(false);
   const [paymentMsg, setPaymentMsg] = useState('');
   const [companySeats, setCompanySeats] = useState({});
+  const [childUsernames, setChildUsernames] = useState({});
+  const [childCodes, setChildCodes] = useState({}); // { parentId: { code, label } }
+
+  async function createChildPackage(parentId) {
+    setPaymentMsg('');
+    const label = childUsernames[parentId] || '';
+    const { data, error } = await supabase
+      .from('child_packages')
+      .insert({ parent_id: parentId, child_username_requested: label })
+      .select('invite_code')
+      .single();
+    if (error) {
+      setPaymentMsg('Kunde inte skapa barnpaket: ' + error.message);
+      return;
+    }
+    setChildCodes(prev => ({ ...prev, [parentId]: { code: data.invite_code, label } }));
+    setPaymentMsg(`Barnpaket skapat! Kod: ${data.invite_code} — ge den till barnet att lösa in under sin profil.`);
+  }
 
   async function searchPayments(e) {
     e.preventDefault();
@@ -163,7 +181,24 @@ export default function AdminBetalningar() {
               <button className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => markPaidCompany(u.id, u.username)}>
                 Företag ({(Math.max(COMPANY_MIN_SEATS, parseInt(companySeats[u.id] || COMPANY_MIN_SEATS, 10))) * COMPANY_PRICE_PER_SEAT} kr)
               </button>
+              <span style={{ borderLeft: '1px solid var(--line)', height: 24, margin: '0 4px' }} />
+              <input
+                type="text"
+                placeholder="Önskat barn-användarnamn (valfritt)"
+                value={childUsernames[u.id] ?? ''}
+                onChange={e => setChildUsernames(prev => ({ ...prev, [u.id]: e.target.value }))}
+                className="field"
+                style={{ width: 200, padding: '8px 10px' }}
+              />
+              <button className="btn btn-ghost" style={{ width: 'auto', borderColor: '#c98f4f', color: '#e0b37f' }} onClick={() => createChildPackage(u.id)}>
+                Skapa barnpaket (99 kr)
+              </button>
             </div>
+            {childCodes[u.id] && (
+              <div className="toast" style={{ marginTop: 8 }}>
+                Kod till {childCodes[u.id].label || 'barnet'}: <b style={{ fontFamily: "'JetBrains Mono', monospace" }}>{childCodes[u.id].code}</b>
+              </div>
+            )}
           </div>
         );
       })}

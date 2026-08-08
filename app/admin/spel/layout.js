@@ -8,7 +8,8 @@ const SPEL_LINKS = [
   { href: '/admin/spel/medlemmar', label: 'Medlemsspel' },
   { href: '/admin/spel/pool', label: 'Pool' },
   { href: '/admin/spel/testade', label: 'Testade' },
-  { href: '/admin/spel/ej-tilldelade', label: 'Ej tilldelade' }
+  { href: '/admin/spel/ej-tilldelade', label: 'Ej tilldelade' },
+  { href: '/admin/spel/barnpaket', label: 'Barnpaket' }
 ];
 
 export default function SpelLayout({ children }) {

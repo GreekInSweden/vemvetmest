@@ -5,17 +5,18 @@ import { supabase } from '../../../lib/supabaseClient';
 
 export default function AdminSpelOverview() {
   const [loading, setLoading] = useState(true);
-  const [counts, setCounts] = useState({ featured: 0, member: 0, pool: 0, tested: 0, untested: 0, total: 0 });
+  const [counts, setCounts] = useState({ featured: 0, member: 0, pool: 0, tested: 0, untested: 0, childPackage: 0, total: 0 });
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('game_lists').select('featured, member_exclusive, daily_pool, tested');
+      const { data } = await supabase.from('game_lists').select('featured, member_exclusive, daily_pool, tested, child_package');
       const rows = data || [];
       setCounts({
         featured: rows.filter(g => g.featured).length,
         member: rows.filter(g => g.member_exclusive).length,
         pool: rows.filter(g => g.daily_pool).length,
         tested: rows.filter(g => g.tested).length,
+        childPackage: rows.filter(g => g.child_package).length,
         untested: rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool && !g.tested).length,
         total: rows.length
       });
@@ -31,7 +32,8 @@ export default function AdminSpelOverview() {
     { href: '/admin/spel/medlemmar', label: 'Medlemsspel', count: counts.member, glow: '#9ab8e6', border: '#5b8fd6' },
     { href: '/admin/spel/pool', label: 'Dagens utmaning-pool', count: counts.pool, glow: '#7fc98f', border: '#4f9e63' },
     { href: '/admin/spel/testade', label: 'Testade spel', count: counts.tested, glow: '#e0b37f', border: '#c98f4f' },
-    { href: '/admin/spel/ej-tilldelade', label: 'Ej tilldelade (testläge)', count: counts.untested, glow: '#bbb', border: '#888' }
+    { href: '/admin/spel/ej-tilldelade', label: 'Ej tilldelade (testläge)', count: counts.untested, glow: '#bbb', border: '#888' },
+    { href: '/admin/spel/barnpaket', label: 'Barnpaket', count: counts.childPackage, glow: '#e0b37f', border: '#c98f4f' }
   ];
 
   return (
