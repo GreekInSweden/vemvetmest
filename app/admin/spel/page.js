@@ -12,10 +12,10 @@ export default function AdminSpelOverview() {
       const { data } = await supabase.from('game_lists').select('featured, member_exclusive, daily_pool, tested, child_package');
       const rows = data || [];
       setCounts({
-        featured: rows.filter(g => g.featured).length,
-        member: rows.filter(g => g.member_exclusive).length,
-        pool: rows.filter(g => g.daily_pool).length,
-        tested: rows.filter(g => g.tested).length,
+        featured: rows.filter(g => g.featured && !g.child_package).length,
+        member: rows.filter(g => g.member_exclusive && !g.child_package).length,
+        pool: rows.filter(g => g.daily_pool && !g.child_package).length,
+        tested: rows.filter(g => g.tested && !g.child_package).length,
         childPackage: rows.filter(g => g.child_package).length,
         untested: rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool && !g.tested && !g.child_package).length,
         total: rows.length

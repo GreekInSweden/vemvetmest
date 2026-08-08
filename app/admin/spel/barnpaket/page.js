@@ -5,7 +5,8 @@ import { supabase } from '../../../../lib/supabaseClient';
 
 export default function BarnpaketSpel() {
   const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState([]); // bara de spel som HAR child_package = true
+  const [untested, setUntested] = useState([]); // child_package=true, tested=false
+  const [tested, setTested] = useState([]);      // child_package=true, tested=true
   const [msg, setMsg] = useState('');
 
   // ---- Lägg till nya spel ----
@@ -17,10 +18,12 @@ export default function BarnpaketSpel() {
     setLoading(true);
     const { data } = await supabase
       .from('game_lists')
-      .select('id, slug, title')
+      .select('id, slug, title, tested')
       .eq('child_package', true)
       .order('title');
-    setMembers(data || []);
+    const rows = data || [];
+    setUntested(rows.filter(g => !g.tested));
+    setTested(rows.filter(g => g.tested));
     setLoading(false);
   }
 
@@ -30,8 +33,23 @@ export default function BarnpaketSpel() {
     setMsg('');
     const { error } = await supabase.from('game_lists').update({ child_package: false }).eq('id', id);
     if (error) { setMsg('Kunde inte ta bort: ' + error.message); return; }
-    setMembers(prev => prev.filter(g => g.id !== id));
+    setUntested(prev => prev.filter(g => g.id !== id));
+    setTested(prev => prev.filter(g => g.id !== id));
     setMsg(`"${title}" borttaget ur Barnpaketet.`);
+  }
+
+  async function markTested(g, value) {
+    setMsg('');
+    const { error } = await supabase.from('game_lists').update({ tested: value }).eq('id', g.id);
+    if (error) { setMsg('Kunde inte ändra: ' + error.message); return; }
+    if (value) {
+      setUntested(prev => prev.filter(x => x.id !== g.id));
+      setTested(prev => [...prev, { ...g, tested: true }].sort((a, b) => a.title.localeCompare(b.title)));
+    } else {
+      setTested(prev => prev.filter(x => x.id !== g.id));
+      setUntested(prev => [...prev, { ...g, tested: false }].sort((a, b) => a.title.localeCompare(b.title)));
+    }
+    setMsg(`"${g.title}" markerat som ${value ? 'testat' : 'ej testat'}.`);
   }
 
   async function searchToAdd(e) {
@@ -41,7 +59,7 @@ export default function BarnpaketSpel() {
     setAddSearching(true);
     const { data } = await supabase
       .from('game_lists')
-      .select('id, title, child_package')
+      .select('id, slug, title, child_package')
       .ilike('title', `%${term}%`)
       .order('title')
       .limit(15);
@@ -49,13 +67,15 @@ export default function BarnpaketSpel() {
     setAddResults((data || []).filter(g => !g.child_package)); // dölj de som redan är med
   }
 
-  async function addToPackage(id, title) {
+  async function addToPackage(g) {
     setMsg('');
-    const { error } = await supabase.from('game_lists').update({ child_package: true }).eq('id', id);
+    const { error } = await supabase.from('game_lists').update({ child_package: true }).eq('id', g.id);
     if (error) { setMsg('Kunde inte lägga till: ' + error.message); return; }
-    setAddResults(prev => prev.filter(g => g.id !== id));
-    setMembers(prev => [...prev, { id, title }].sort((a, b) => a.title.localeCompare(b.title)));
-    setMsg(`"${title}" tillagt i Barnpaketet.`);
+    setAddResults(prev => prev.filter(x => x.id !== g.id));
+    // Nya spel hamnar alltid som "ej testade" - precis som huvudpoolens
+    // "Ej tilldelade"-tanke, fast skalad ner till bara Barnpaketet.
+    setUntested(prev => [...prev, { id: g.id, slug: g.slug, title: g.title, tested: false }].sort((a, b) => a.title.localeCompare(b.title)));
+    setMsg(`"${g.title}" tillagt i Barnpaketet — markera som testat när du kollat igenom det.`);
   }
 
   if (loading) return <p className="subhead">Laddar…</p>;
@@ -64,39 +84,65 @@ export default function BarnpaketSpel() {
     <>
       <div className="cat-title" style={{ marginTop: 0, color: '#e0b37f' }}>📂 Barnpaket</div>
       <p className="subhead" style={{ marginBottom: 14 }}>
-        Helt separat pool, blandas aldrig med de andra fyra nivåerna. Detta är de spel som ingår när
-        någon köper Barnpaketet (99 kr/år). Listan nedan visar <b style={{ color: '#e0b37f' }}>bara de spel som redan är med</b> —
-        bocka ur för att ta bort. Vill du lägga till fler, sök i rutan längre ner.
+        Helt separat pool, blandas aldrig med de andra fyra nivåerna. Nya spel hamnar under
+        "Ej testade" tills du kryssat igenom dem — precis som huvudpoolens system, fast inom Barnpaketet.
       </p>
       {msg && <div className="toast" style={{ marginBottom: 14 }}>{msg}</div>}
 
-      <div className="cat-title" style={{ fontSize: 14 }}>Nuvarande spel ({members.length})</div>
-      {members.length === 0 ? (
-        <p className="subhead" style={{ marginBottom: 20 }}>Inga spel i Barnpaketet än — sök nedan för att lägga till några.</p>
+      {/* ---- Ej testade ---- */}
+      <div className="cat-title" style={{ fontSize: 14, color: '#bbb' }}>📁 Ej testade ({untested.length})</div>
+      {untested.length === 0 ? (
+        <p className="subhead" style={{ marginBottom: 20 }}>Inga otestade spel just nu.</p>
       ) : (
         <div className="list-grid" style={{ marginBottom: 24 }}>
-          {members.map(g => (
-            <div
-              key={g.id}
-              className="plaque"
-              style={{ display: 'flex', alignItems: 'center', gap: 10, borderColor: '#c98f4f' }}
-            >
-              <input
-                type="checkbox"
-                checked
-                onChange={() => removeFromPackage(g.id, g.title)}
-                style={{ width: 16, height: 16, accentColor: '#c98f4f', cursor: 'pointer' }}
-              />
+          {untested.map(g => (
+            <div key={g.id} className="plaque" style={{ display: 'flex', alignItems: 'center', gap: 8, borderColor: '#888' }}>
               <span style={{ flex: 1 }}>{g.title}</span>
-              <a
-                href={`/play/${g.slug}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ fontSize: 11 }}
-                title="Testspela"
+              <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
+              <button
+                className="btn btn-ghost"
+                style={{ width: 'auto', padding: '3px 10px', fontSize: 11, borderColor: '#7fc98f' }}
+                onClick={() => markTested(g, true)}
               >
-                🔍
-              </a>
+                ✓ Markera testat
+              </button>
+              <button
+                onClick={() => removeFromPackage(g.id, g.title)}
+                style={{ background: 'none', border: 'none', color: 'var(--miss)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '2px 4px' }}
+                title="Ta bort ur Barnpaketet"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ---- Testade och klara ---- */}
+      <div className="cat-title" style={{ fontSize: 14, color: '#7fc98f' }}>📁 Testade och klara ({tested.length})</div>
+      {tested.length === 0 ? (
+        <p className="subhead" style={{ marginBottom: 20 }}>Inga testade spel än.</p>
+      ) : (
+        <div className="list-grid" style={{ marginBottom: 24 }}>
+          {tested.map(g => (
+            <div key={g.id} className="plaque" style={{ display: 'flex', alignItems: 'center', gap: 8, borderColor: '#7fc98f' }}>
+              <span style={{ flex: 1 }}>{g.title}</span>
+              <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
+              <button
+                className="btn btn-ghost"
+                style={{ width: 'auto', padding: '3px 10px', fontSize: 11 }}
+                onClick={() => markTested(g, false)}
+                title="Flytta tillbaka till Ej testade"
+              >
+                Ångra
+              </button>
+              <button
+                onClick={() => removeFromPackage(g.id, g.title)}
+                style={{ background: 'none', border: 'none', color: 'var(--miss)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '2px 4px' }}
+                title="Ta bort ur Barnpaketet"
+              >
+                ✕
+              </button>
             </div>
           ))}
         </div>
@@ -107,7 +153,7 @@ export default function BarnpaketSpel() {
         <form onSubmit={searchToAdd} className="input-row" style={{ marginBottom: 10 }}>
           <input
             className="field"
-            placeholder="Sök bland alla 351 spel…"
+            placeholder="Sök bland alla spel…"
             value={addSearch}
             onChange={e => setAddSearch(e.target.value)}
           />
@@ -122,7 +168,7 @@ export default function BarnpaketSpel() {
                 key={g.id}
                 className="plaque"
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }}
-                onClick={() => addToPackage(g.id, g.title)}
+                onClick={() => addToPackage(g)}
               >
                 <span>{g.title}</span>
                 <span style={{ color: '#e0b37f', fontSize: 12 }}>+ Lägg till</span>

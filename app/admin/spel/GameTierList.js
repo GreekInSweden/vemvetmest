@@ -26,9 +26,13 @@ export default function GameTierList({ filterTier }) {
       .order('title');
 
     const rows = data || [];
+    // Barnpaket-spel lever helt separat - de ska aldrig dyka upp i
+    // någon av de fyra vanliga nivåerna, inte ens om de råkar vara
+    // markerade "tested" inom Barnpaketets egen ej-testade/testade-
+    // uppdelning.
     const filtered = filterTier === 'untested'
       ? rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool && !g.tested && !g.child_package)
-      : rows.filter(g => g[filterTier]);
+      : rows.filter(g => g[filterTier] && !g.child_package);
 
     setGames(filtered);
     const initialEdits = {};

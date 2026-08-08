@@ -23,9 +23,9 @@ export default function AdminOverview() {
 
     const { data: games } = await supabase.from('game_lists').select('featured, member_exclusive, daily_pool, tested, child_package');
     const rows = games || [];
-    setFeaturedCount(rows.filter(g => g.featured).length);
-    setMemberCount(rows.filter(g => g.member_exclusive).length);
-    setPoolCount(rows.filter(g => g.daily_pool).length);
+    setFeaturedCount(rows.filter(g => g.featured && !g.child_package).length);
+    setMemberCount(rows.filter(g => g.member_exclusive && !g.child_package).length);
+    setPoolCount(rows.filter(g => g.daily_pool && !g.child_package).length);
     setUntestedGames(rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool && !g.tested && !g.child_package).length);
 
     setLoading(false);
