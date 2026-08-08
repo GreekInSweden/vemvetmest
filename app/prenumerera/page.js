@@ -258,7 +258,7 @@ export default function PrenumereraPage() {
           <>
             <div style={{
               background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: 16, borderRadius: 8, marginBottom: 16, minWidth: QR_SIZE, minHeight: QR_SIZE
+              padding: 12, borderRadius: 8, marginBottom: 16, minWidth: QR_SIZE, minHeight: QR_SIZE, maxWidth: '100%'
             }}>
               <canvas ref={canvasRef} width={QR_SIZE} height={QR_SIZE} />
               {qrError && <p style={{ color: '#b00', fontSize: 13 }}>{qrError}</p>}
