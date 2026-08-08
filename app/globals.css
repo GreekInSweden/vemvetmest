@@ -127,8 +127,9 @@ h1.brand{
 .list-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 600px){ .list-grid{ grid-template-columns: 1fr; } }
 
-.topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; }
+.topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
 .topbar .user{ font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--muted); }
+.topbar > div{ display:flex; flex-wrap: wrap; gap: 8px; }
 
 /* ---- Spelmotor (flap-tavla) ---- */
 .stats{ display:flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -144,7 +145,7 @@ h1.brand{
 @keyframes shake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);} }
 
 .toast{ min-height: 18px; font-size: 12px; color: var(--amber-glow); font-family:'JetBrains Mono', monospace; margin: 4px 2px 14px; }
-.foot-actions{ display:flex; gap:10px; margin-bottom: 18px; }
+.foot-actions{ display:flex; gap:10px; margin-bottom: 18px; flex-wrap: wrap; }
 
 .board-list{ column-width: 260px; column-gap: 12px; }
 @media (max-width: 620px){ .board-list{ column-count: 1; column-width: auto; } }
@@ -242,4 +243,30 @@ footer.site{ text-align:center; color: var(--muted); font-size: 12px; margin-top
   color: var(--muted);
   font-family: 'Inter', sans-serif;
   font-weight: 400;
+}
+
+/* ============================================================
+   MOBILANPASSNINGAR — spelmiljön (dashboard, spelsidor, profil,
+   topplistor, prenumeration). Adminpanelen medvetet oförändrad.
+   ============================================================ */
+@media (max-width: 480px){
+  .wrap{ padding: 18px 12px 48px; }
+
+  .btn{ padding: 12px 14px; font-size: 13px; }
+  .plaque{ padding: 10px 14px; font-size: 13px; }
+
+  .stat{ padding: 7px 10px; font-size: 12px; }
+  .stat b{ font-size: 13px; }
+
+  .flap .name{ font-size: 10.5px; }
+  .flap .value{ font-size: 8.5px; margin-left: 4px; }
+  .rank{ flex-basis: 22px; font-size: 10px; }
+
+  .upgrade-perks li{ font-size: 12.5px; }
+  .upgrade-price{ font-size: 28px; }
+
+  /* Rader med flera knappar/statistik-block bredvid varandra ska
+     alltid kunna brytas till flera rader istället för att klämmas
+     ihop eller orsaka horisontell scroll. */
+  .input-row .field{ flex-basis: 100%; }
 }

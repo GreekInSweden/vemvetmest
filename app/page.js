@@ -169,7 +169,7 @@ export default function Dashboard() {
         {loggedIn ? (
           <>
             <div className="user">Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b></div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <a className="btn btn-ghost" href="/profil">Min profil</a>
               <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
               {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
@@ -179,7 +179,7 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="user">Testa gratisspelen nedan — inget konto behövs</div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <a className="btn btn-ghost" href="/login">Logga in</a>
               <a className="btn btn-primary" style={{ width: 'auto' }} href="/signup">Skapa konto</a>
             </div>
