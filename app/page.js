@@ -354,15 +354,15 @@ export default function Dashboard() {
       {loggedIn && memberLists.length > 0 && (
         <>
           <div className="cat-title" style={{ marginTop: loggedIn && isPaidActive ? 30 : 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: '#7ba7e0' }}>Medlemsspel — den här månaden</span>
+            <span style={{ color: '#8fb3e6' }}>Medlemsspel — den här månaden</span>
           </div>
           <p className="subhead" style={{ marginBottom: 12 }}>
             Gratis eftersom du har ett konto, men bara tillgängliga en begränsad tid — byts ut nästa månad.
           </p>
           <div className="list-grid" style={{ marginBottom: 10 }}>
             {memberLists.map(l => (
-              <a key={l.id} className="plaque" href={`/play/${l.slug}`} style={{ borderColor: '#5b8fd6' }}>
-                <span className="tag" style={{ background: '#243449', color: '#9ab8e6' }}>Medlemsspel</span>
+              <a key={l.id} className="plaque" href={`/play/${l.slug}`} style={{ borderColor: '#8fb3e6' }}>
+                <span className="tag" style={{ background: 'transparent', color: '#8fb3e6', opacity: 0.85, padding: 0 }}>Medlemsspel</span>
                 {l.title}
               </a>
             ))}
