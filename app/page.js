@@ -188,6 +188,36 @@ export default function Dashboard() {
         <p className="subhead">Välj ett spel — fler kategorier och listor läggs till löpande.</p>
       </header>
 
+      {/* ==== ANONYMA BESÖKARE: säljande CTA DIREKT efter rubriken, innan
+           spelen - ny besökare ska se vad Kan Du Alla faktiskt erbjuder
+           tidigt. Inloggade (betalande eller ej) ser den här ALDRIG -
+           de har redan spelen som första anhalt istället. ==== */}
+      {!loggedIn && (
+        <div className="upgrade-card" style={{ marginBottom: 30 }}>
+          <span className="upgrade-badge">Obegränsad tillgång</span>
+          <div className="upgrade-title">Vill du tävla på riktigt?</div>
+          <p className="subhead" style={{ maxWidth: 520, marginBottom: 0 }}>
+            104 nya utmaningar om året — två färska varje vecka, dolda tills du klickar in.
+            Skapa egna ligor med kollegorna och jaga topplistan.
+          </p>
+          <ul className="upgrade-perks">
+            <li>✓ <b>Dagens utmaning</b> — måndag och onsdag, hela året</li>
+            <li>✓ <b>Fredag</b> är sista chansen att lösa in ett liv om du missat något</li>
+            <li>✓ <b>Egna privata ligor</b> med vänner och kollegor</li>
+            <li>✓ <b>Topplistor</b> — avslöjas varje lördag, totalt, per liga och per omgång</li>
+          </ul>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
+            <div>
+              <div className="upgrade-price">29 kr<span> / månad</span></div>
+              <div className="subhead" style={{ fontSize: 12, marginTop: 2 }}>eller 299 kr för hela året</div>
+            </div>
+            <a href="/prenumerera" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
+              Bli medlem →
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* ==== BETALANDE MEDLEMMAR: allt medlemskapet ger tillgång till, överst ==== */}
       {loggedIn && isPaidActive && (
         <>
@@ -359,37 +389,6 @@ export default function Dashboard() {
           </div>
         );
       })}
-
-      {/* ==== ANONYMA BESÖKARE: säljande CTA EFTER att de sett spelen.
-           Inloggade (betalande eller ej) ser bara den mindre
-           "Lås upp Dagens Utmaning"-rutan istället - ingen anledning att
-           visa hela säljpitchen på nytt varje gång man besöker sin egen
-           spelyta. ==== */}
-      {!loggedIn && (
-        <div className="upgrade-card" style={{ marginTop: 30 }}>
-          <span className="upgrade-badge">Obegränsad tillgång</span>
-          <div className="upgrade-title">Vill du tävla på riktigt?</div>
-          <p className="subhead" style={{ maxWidth: 520, marginBottom: 0 }}>
-            104 nya utmaningar om året — två färska varje vecka, dolda tills du klickar in.
-            Skapa egna ligor med kollegorna och jaga topplistan.
-          </p>
-          <ul className="upgrade-perks">
-            <li>✓ <b>Dagens utmaning</b> — måndag och onsdag, hela året</li>
-            <li>✓ <b>Fredag</b> är sista chansen att lösa in ett liv om du missat något</li>
-            <li>✓ <b>Egna privata ligor</b> med vänner och kollegor</li>
-            <li>✓ <b>Topplistor</b> — avslöjas varje lördag, totalt, per liga och per omgång</li>
-          </ul>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, flexWrap: 'wrap' }}>
-            <div>
-              <div className="upgrade-price">29 kr<span> / månad</span></div>
-              <div className="subhead" style={{ fontSize: 12, marginTop: 2 }}>eller 299 kr för hela året</div>
-            </div>
-            <a href="/prenumerera" className="btn btn-primary" style={{ width: 'auto', padding: '13px 26px' }}>
-              Bli medlem →
-            </a>
-          </div>
-        </div>
-      )}
 
       <footer className="site">
         {loggedIn
