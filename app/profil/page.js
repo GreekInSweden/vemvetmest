@@ -31,6 +31,23 @@ export default function ProfilePage() {
   const [familyMsg, setFamilyMsg] = useState('');
   const [showFamilyJoin, setShowFamilyJoin] = useState(false);
 
+  const [childPackageCode, setChildPackageCode] = useState('');
+  const [childPackageMsg, setChildPackageMsg] = useState('');
+  const [showChildJoin, setShowChildJoin] = useState(false);
+  const [hasChildPackage, setHasChildPackage] = useState(false); // gäller MITT konto (om jag är barnet)
+  const [myChildren, setMyChildren] = useState([]); // gäller om JAG är förälder
+
+  async function loadChildPackages(uid) {
+    const { data: myProfile } = await supabase.from('profiles').select('child_package_id').eq('id', uid).single();
+    setHasChildPackage(!!myProfile?.child_package_id);
+
+    const { data: parentOf } = await supabase
+      .from('child_packages')
+      .select('id, child_username_requested, activated, child_profile_id, invite_code')
+      .eq('parent_id', uid);
+    setMyChildren((parentOf || []).filter(c => c.activated));
+  }
+
   async function loadFamilyPlan(uid) {
     const { data: membership } = await supabase
       .from('family_plan_members')
@@ -82,6 +99,7 @@ export default function ProfilePage() {
 
       await loadLeagues(uid);
       await loadFamilyPlan(uid);
+      await loadChildPackages(uid);
       setLoading(false);
     }
     load();
@@ -200,6 +218,22 @@ export default function ProfilePage() {
     setShowFamilyJoin(false);
     setFamilyMsg('Du är nu med i familjeplanen!');
     await loadFamilyPlan(userId);
+  }
+
+  async function handleJoinChildPackage(e) {
+    e.preventDefault();
+    setChildPackageMsg('');
+    const code = childPackageCode.trim();
+    if (!code) return;
+    const { error } = await supabase.rpc('join_child_package', { p_code: code });
+    if (error) {
+      setChildPackageMsg(error.message.includes('använd') ? 'Koden är redan använd.' : 'Ogiltig kod.');
+      return;
+    }
+    setChildPackageCode('');
+    setShowChildJoin(false);
+    setChildPackageMsg('Klart! De 50 barnspelen är nu upplåsta på det här kontot.');
+    await loadChildPackages(userId);
   }
 
   if (loading) return <div className="wrap"><p className="subhead">Laddar…</p></div>;
@@ -411,6 +445,54 @@ export default function ProfilePage() {
         </>
       )}
       {familyMsg && <div className="toast" style={{ marginTop: 4 }}>{familyMsg}</div>}
+
+      {/* ---- Barnpaket ---- */}
+      <div className="cat-title" style={{ marginTop: 34 }}>Barnpaket</div>
+
+      {hasChildPackage && (
+        <p className="subhead" style={{ marginBottom: 14 }}>
+          ✓ Det här kontot har låst upp de 50 barnspelen permanent.
+        </p>
+      )}
+
+      {!hasChildPackage && (
+        <>
+          <p className="subhead" style={{ marginBottom: 10 }}>
+            Har en förälder köpt ett barnpaket och skickat en kod? Lös in den här på barnets
+            eget konto för att låsa upp spelen permanent.
+          </p>
+          <button className="plaque" style={{ marginBottom: 10 }} onClick={() => { setShowChildJoin(s => !s); setChildPackageMsg(''); }}>
+            Lös in barnpaket-kod
+          </button>
+          {showChildJoin && (
+            <form onSubmit={handleJoinChildPackage} className="panel" style={{ marginBottom: 16 }}>
+              <input
+                className="field"
+                type="text"
+                placeholder="Kod, t.ex. N57R6Y"
+                value={childPackageCode}
+                onChange={e => setChildPackageCode(e.target.value)}
+                style={{ textTransform: 'uppercase' }}
+              />
+              <button className="btn btn-primary" type="submit">Lös in</button>
+            </form>
+          )}
+        </>
+      )}
+      {childPackageMsg && <div className="toast" style={{ marginTop: 4, marginBottom: 10 }}>{childPackageMsg}</div>}
+
+      {myChildren.length > 0 && (
+        <>
+          <p className="subhead" style={{ marginBottom: 8, marginTop: 10 }}>Du är förälder till:</p>
+          <div className="list-grid">
+            {myChildren.map(c => (
+              <a key={c.id} href={`/profil/barnstatistik/${c.child_profile_id}`} className="plaque" style={{ borderColor: '#c98f4f' }}>
+                {c.child_username_requested || 'Barnkonto'} — se statistik →
+              </a>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
