@@ -51,6 +51,16 @@ export default function GameTierList({ filterTier }) {
     }));
   }
 
+  function setAllForTier(tierKey, value) {
+    setEdits(prev => {
+      const next = { ...prev };
+      visibleGames.forEach(g => {
+        next[g.id] = { ...next[g.id], [tierKey]: value };
+      });
+      return next;
+    });
+  }
+
   async function save() {
     setSaving(true);
     setMsg('');
@@ -93,9 +103,31 @@ export default function GameTierList({ filterTier }) {
         {msg && <span className="toast" style={{ margin: 0 }}>{msg}</span>}
       </div>
 
-      <p className="subhead" style={{ fontSize: 12, marginBottom: 14 }}>
+      <p className="subhead" style={{ fontSize: 12, marginBottom: 10 }}>
         {games.length} spel här. Bocka i/ur för att flytta ett spel till en annan kategori — glöm inte att trycka Spara.
       </p>
+
+      {/* ---- Snabbval: markera/avmarkera alla synliga (filtrerade) rader per kolumn ---- */}
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 16, padding: '10px 12px', background: 'var(--bg-2)', borderRadius: 6 }}>
+        {TIERS.map(t => (
+          <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: t.glow, letterSpacing: '.03em' }}>{t.label}:</span>
+            <button
+              onClick={() => setAllForTier(t.key, true)}
+              style={{ background: 'none', border: `1px solid ${t.color}`, color: t.glow, borderRadius: 3, fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}
+            >
+              Alla
+            </button>
+            <button
+              onClick={() => setAllForTier(t.key, false)}
+              style={{ background: 'none', border: '1px solid var(--line)', color: 'var(--muted)', borderRadius: 3, fontSize: 11, padding: '2px 8px', cursor: 'pointer' }}
+            >
+              Ingen
+            </button>
+          </div>
+        ))}
+        <span className="subhead" style={{ fontSize: 11, marginLeft: 'auto' }}>Gäller bara raderna som visas nedan (efter sökfilter)</span>
+      </div>
 
       {visibleGames.length === 0 ? (
         <p className="subhead">Inga spel matchar.</p>
