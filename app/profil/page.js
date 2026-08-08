@@ -35,7 +35,8 @@ export default function ProfilePage() {
   const [childPackageMsg, setChildPackageMsg] = useState('');
   const [showChildJoin, setShowChildJoin] = useState(false);
   const [hasChildPackage, setHasChildPackage] = useState(false); // gäller MITT konto (om jag är barnet)
-  const [myChildren, setMyChildren] = useState([]); // gäller om JAG är förälder
+  const [myChildren, setMyChildren] = useState([]); // aktiverade barn, om JAG är förälder
+  const [isParent, setIsParent] = useState(false); // har JAG någonsin skapat ett barnpaket åt någon
 
   async function loadChildPackages(uid) {
     const { data: myProfile } = await supabase.from('profiles').select('child_package_id').eq('id', uid).single();
@@ -45,6 +46,7 @@ export default function ProfilePage() {
       .from('child_packages')
       .select('id, child_username_requested, activated, child_profile_id, invite_code')
       .eq('parent_id', uid);
+    setIsParent((parentOf || []).length > 0);
     setMyChildren((parentOf || []).filter(c => c.activated));
   }
 
@@ -455,11 +457,19 @@ export default function ProfilePage() {
         </p>
       )}
 
-      {!hasChildPackage && (
+      {isParent && (
+        <p className="subhead" style={{ marginBottom: 14 }}>
+          Du har köpt ett barnpaket åt någon annan — inget att lösa in på det här kontot.
+          Se statistiken nedan.
+        </p>
+      )}
+
+      {!hasChildPackage && !isParent && (
         <>
           <p className="subhead" style={{ marginBottom: 10 }}>
-            Har en förälder köpt ett barnpaket och skickat en kod? Lös in den här på barnets
-            eget konto för att låsa upp spelen permanent.
+            Har en förälder köpt ett barnpaket och skickat en kod? Lös in den här — på{' '}
+            <b style={{ color: 'var(--amber-glow)' }}>barnets eget konto</b>, alltså det du är
+            inloggad på just nu — för att låsa upp spelen permanent.
           </p>
           <button className="plaque" style={{ marginBottom: 10 }} onClick={() => { setShowChildJoin(s => !s); setChildPackageMsg(''); }}>
             Lös in barnpaket-kod
