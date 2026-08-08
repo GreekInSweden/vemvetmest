@@ -14,11 +14,19 @@ const QR_SIZE = 260;
 export default function PrenumereraPage() {
   const [plan, setPlan] = useState('yearly');
   const [seats, setSeats] = useState(COMPANY_MIN_SEATS);
-  const [childUsername, setChildUsername] = useState('');
   const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
   const canvasRef = useRef(null);
   const [qrError, setQrError] = useState('');
+
+  // ---- Barnkonto-skapande ----
+  const [childUsername, setChildUsername] = useState('');
+  const [childPassword, setChildPassword] = useState('');
+  const [childPasswordConfirm, setChildPasswordConfirm] = useState('');
+  const [usernameStatus, setUsernameStatus] = useState(null); // null | 'checking' | 'available' | 'taken'
+  const [childAccountCreated, setChildAccountCreated] = useState(false);
+  const [childCreateError, setChildCreateError] = useState('');
+  const [creatingChild, setCreatingChild] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -36,6 +44,43 @@ export default function PrenumereraPage() {
     load();
   }, []);
 
+  // Kollar ledigt användarnamn medan föräldern skriver, med kort fördröjning
+  useEffect(() => {
+    if (childUsername.length < 3) { setUsernameStatus(null); return; }
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(childUsername)) { setUsernameStatus('invalid'); return; }
+    setUsernameStatus('checking');
+    const timeout = setTimeout(async () => {
+      const { data } = await supabase.rpc('is_username_available', { p_username: childUsername });
+      setUsernameStatus(data ? 'available' : 'taken');
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [childUsername]);
+
+  async function handleCreateChildAccount() {
+    setChildCreateError('');
+    if (usernameStatus !== 'available') { setChildCreateError('Välj ett ledigt användarnamn först.'); return; }
+    if (childPassword.length < 6) { setChildCreateError('Lösenordet måste vara minst 6 tecken.'); return; }
+    if (childPassword !== childPasswordConfirm) { setChildCreateError('Lösenorden matchar inte.'); return; }
+
+    setCreatingChild(true);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    const res = await fetch('/api/create-child-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ childUsername, childPassword })
+    });
+    const result = await res.json();
+    setCreatingChild(false);
+
+    if (!res.ok) {
+      setChildCreateError(result.error || 'Något gick fel.');
+      return;
+    }
+    setChildAccountCreated(true);
+  }
+
   const isCompany = plan === 'company';
   const isChild = plan === 'child';
   const amount = isCompany ? seats * COMPANY_PRICE_PER_SEAT : (isChild ? CHILD_PACKAGE_PRICE : PLAN_PRICES[plan].amount);
@@ -47,18 +92,21 @@ export default function PrenumereraPage() {
   const safeChildLabel = childUsername ? childUsername.replace(/[^a-zA-Z0-9-]/g, '-') : '';
   const message = safeUsername
     ? (isCompany ? `KDA-${safeUsername}-F${seats}`
-      : isChild ? `KDA-${safeUsername}-BARN${safeChildLabel ? '-' + safeChildLabel : ''}`
+      : isChild ? `KDA-${safeUsername}-BARN-${safeChildLabel}`
       : `KDA-${safeUsername}`)
     : null;
   const swishLink = message
     ? buildSwishLink({ payeeNumber: SWISH_NUMBER, amount, message, editableFields: [] })
     : null;
 
+  // Barnpaket-fliken ska bara visa QR:n när kontot faktiskt skapats
+  const readyForPayment = !isChild || childAccountCreated;
+
   // Ritar QR-koden direkt på en <canvas> med biblioteket "qrcode" - ingen
   // extern bildtjänst inblandad, så det finns inget mellanled som kan
   // skala om eller på annat sätt förändra bilden efter att den skapats.
   useEffect(() => {
-    if (!swishLink || !canvasRef.current) return;
+    if (!swishLink || !canvasRef.current || !readyForPayment) return;
     setQrError('');
     QRCode.toCanvas(canvasRef.current, swishLink, {
       width: QR_SIZE,
@@ -67,7 +115,7 @@ export default function PrenumereraPage() {
     }, (err) => {
       if (err) setQrError('Kunde inte rita QR-koden: ' + err.message);
     });
-  }, [swishLink]);
+  }, [swishLink, readyForPayment]);
 
   return (
     <div className="wrap">
@@ -125,16 +173,63 @@ export default function PrenumereraPage() {
           </div>
         )}
 
-        {isChild && (
+        {isChild && !childAccountCreated && (
           <div style={{ marginBottom: 16, textAlign: 'left' }}>
-            <label className="subhead" style={{ display: 'block', marginBottom: 8 }}>Barnets önskade användarnamn (valfritt)</label>
+            <label className="subhead" style={{ display: 'block', marginBottom: 6 }}>Barnets användarnamn</label>
             <input
               className="field"
-              placeholder="t.ex. Liten-Anna"
+              placeholder="t.ex. LitenAnna"
               value={childUsername}
               onChange={e => setChildUsername(e.target.value)}
+              style={{ marginBottom: 4 }}
             />
+            <p className="subhead" style={{ fontSize: 11.5, marginBottom: 12, minHeight: 16 }}>
+              {usernameStatus === 'checking' && 'Kollar…'}
+              {usernameStatus === 'available' && <span style={{ color: '#7fc98f' }}>✓ Ledigt</span>}
+              {usernameStatus === 'taken' && <span style={{ color: 'var(--miss)' }}>Upptaget, välj ett annat</span>}
+              {usernameStatus === 'invalid' && <span style={{ color: 'var(--miss)' }}>3-20 tecken, bara bokstäver/siffror/_</span>}
+            </p>
+
+            <label className="subhead" style={{ display: 'block', marginBottom: 6 }}>Lösenord åt barnet</label>
+            <input
+              className="field"
+              type="password"
+              placeholder="Minst 6 tecken"
+              value={childPassword}
+              onChange={e => setChildPassword(e.target.value)}
+              style={{ marginBottom: 10 }}
+            />
+
+            <label className="subhead" style={{ display: 'block', marginBottom: 6 }}>Bekräfta lösenord</label>
+            <input
+              className="field"
+              type="password"
+              placeholder="Samma igen"
+              value={childPasswordConfirm}
+              onChange={e => setChildPasswordConfirm(e.target.value)}
+              style={{ marginBottom: 10 }}
+            />
+
+            {childCreateError && <div className="error-msg" style={{ marginBottom: 10 }}>{childCreateError}</div>}
+
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%' }}
+              onClick={handleCreateChildAccount}
+              disabled={creatingChild || usernameStatus !== 'available'}
+            >
+              {creatingChild ? 'Skapar konto…' : 'Skapa barnkonto'}
+            </button>
+            <p className="subhead" style={{ fontSize: 11, marginTop: 8 }}>
+              Skriv upp uppgifterna någonstans — de finns även sparade under din egen profil om ni glömmer bort dem.
+            </p>
           </div>
+        )}
+
+        {isChild && childAccountCreated && (
+          <p className="subhead" style={{ marginBottom: 16 }}>
+            ✓ Kontot <b style={{ color: 'var(--amber-glow)' }}>{childUsername}</b> är skapat. Betala nedan för att aktivera det.
+          </p>
         )}
 
         <div className="upgrade-price" style={{ fontSize: 44, marginBottom: 4 }}>
@@ -144,7 +239,7 @@ export default function PrenumereraPage() {
           {plan === 'monthly' ? 'Gäller i cirka en månad från betalning.' :
            plan === 'yearly' ? 'Gäller i ett helt år från betalning.' :
            plan === 'family' ? '4 fristående konton i ett helt år. Du blir ägare av familjeplanen och får en kod att dela.' :
-           isChild ? '50 utvalda spel anpassade för barn — permanent tillgång, ingen förnyelse, försvinner aldrig. Du får en kod att lösa in på barnets eget konto.' :
+           isChild ? '50 utvalda spel anpassade för barn — permanent tillgång, ingen förnyelse, försvinner aldrig.' :
            `${seats} fristående konton i ett helt år, samlade i en egen privat liga med gemensam topplista.`}
         </p>
 
@@ -159,7 +254,7 @@ export default function PrenumereraPage() {
               Logga in
             </a>
           </>
-        ) : (
+        ) : !readyForPayment ? null : (
           <>
             <div style={{
               background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -175,7 +270,7 @@ export default function PrenumereraPage() {
               På mobilen? <a href={swishLink}>Tryck här istället för att skanna</a>.
             </p>
             <p className="subhead" style={{ fontSize: 12.5, borderTop: '1px solid var(--line)', paddingTop: 14 }}>
-              När betalningen har registrerats aktiveras ditt konto manuellt inom kort — det här är
+              När betalningen har registrerats aktiveras kontot manuellt inom kort — det här är
               i uppstartsläge inget som sker automatiskt än.
             </p>
           </>

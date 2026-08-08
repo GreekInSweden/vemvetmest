@@ -10,23 +10,22 @@ export default function AdminBetalningar() {
   const [paymentSearching, setPaymentSearching] = useState(false);
   const [paymentMsg, setPaymentMsg] = useState('');
   const [companySeats, setCompanySeats] = useState({});
-  const [childUsernames, setChildUsernames] = useState({});
-  const [childCodes, setChildCodes] = useState({}); // { parentId: { code, label } }
+  const [pendingChildren, setPendingChildren] = useState({}); // { parentId: [{id, child_username_requested, child_profile_id}] }
 
-  async function createChildPackage(parentId) {
+  async function activateChildPackage(packageId, childProfileId, parentId) {
     setPaymentMsg('');
-    const label = childUsernames[parentId] || '';
-    const { data, error } = await supabase
-      .from('child_packages')
-      .insert({ parent_id: parentId, child_username_requested: label })
-      .select('invite_code')
-      .single();
-    if (error) {
-      setPaymentMsg('Kunde inte skapa barnpaket: ' + error.message);
+    const { error: pkgError } = await supabase.from('child_packages').update({ activated: true }).eq('id', packageId);
+    if (pkgError) {
+      setPaymentMsg('Kunde inte aktivera: ' + pkgError.message);
       return;
     }
-    setChildCodes(prev => ({ ...prev, [parentId]: { code: data.invite_code, label } }));
-    setPaymentMsg(`Barnpaket skapat! Kod: ${data.invite_code} — ge den till barnet att lösa in under sin profil.`);
+    const { error: profileError } = await supabase.from('profiles').update({ child_package_id: packageId }).eq('id', childProfileId);
+    if (profileError) {
+      setPaymentMsg('Paketet markerades betalt, men kontot kunde inte kopplas: ' + profileError.message);
+      return;
+    }
+    setPendingChildren(prev => ({ ...prev, [parentId]: (prev[parentId] || []).filter(c => c.id !== packageId) }));
+    setPaymentMsg('Barnpaketet är aktiverat — de 50 spelen är nu upplåsta på barnets konto.');
   }
 
   async function searchPayments(e) {
@@ -46,6 +45,20 @@ export default function AdminBetalningar() {
       return;
     }
     setPaymentResults(data || []);
+
+    if (data && data.length > 0) {
+      const { data: pending } = await supabase
+        .from('child_packages')
+        .select('id, parent_id, child_username_requested, child_profile_id')
+        .in('parent_id', data.map(u => u.id))
+        .eq('activated', false);
+      const grouped = {};
+      (pending || []).forEach(p => {
+        if (!grouped[p.parent_id]) grouped[p.parent_id] = [];
+        grouped[p.parent_id].push(p);
+      });
+      setPendingChildren(grouped);
+    }
   }
 
   async function markPaid(userId, planKey) {
@@ -181,22 +194,25 @@ export default function AdminBetalningar() {
               <button className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => markPaidCompany(u.id, u.username)}>
                 Företag ({(Math.max(COMPANY_MIN_SEATS, parseInt(companySeats[u.id] || COMPANY_MIN_SEATS, 10))) * COMPANY_PRICE_PER_SEAT} kr)
               </button>
-              <span style={{ borderLeft: '1px solid var(--line)', height: 24, margin: '0 4px' }} />
-              <input
-                type="text"
-                placeholder="Önskat barn-användarnamn (valfritt)"
-                value={childUsernames[u.id] ?? ''}
-                onChange={e => setChildUsernames(prev => ({ ...prev, [u.id]: e.target.value }))}
-                className="field"
-                style={{ width: 200, padding: '8px 10px' }}
-              />
-              <button className="btn btn-ghost" style={{ width: 'auto', borderColor: '#c98f4f', color: '#e0b37f' }} onClick={() => createChildPackage(u.id)}>
-                Skapa barnpaket (99 kr)
-              </button>
             </div>
-            {childCodes[u.id] && (
-              <div className="toast" style={{ marginTop: 8 }}>
-                Kod till {childCodes[u.id].label || 'barnet'}: <b style={{ fontFamily: "'JetBrains Mono', monospace" }}>{childCodes[u.id].code}</b>
+
+            {pendingChildren[u.id]?.length > 0 && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+                <div className="subhead" style={{ fontSize: 11.5, marginBottom: 6, color: '#e0b37f' }}>
+                  Väntande barnkonton (skapade av {u.username}):
+                </div>
+                {pendingChildren[u.id].map(c => (
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>{c.child_username_requested}</span>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ width: 'auto', borderColor: '#c98f4f', color: '#e0b37f', padding: '4px 12px', fontSize: 12 }}
+                      onClick={() => activateChildPackage(c.id, c.child_profile_id, u.id)}
+                    >
+                      Aktivera barnpaket (99 kr)
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>

@@ -31,12 +31,13 @@ export default function ProfilePage() {
   const [familyMsg, setFamilyMsg] = useState('');
   const [showFamilyJoin, setShowFamilyJoin] = useState(false);
 
-  const [childPackageCode, setChildPackageCode] = useState('');
-  const [childPackageMsg, setChildPackageMsg] = useState('');
-  const [showChildJoin, setShowChildJoin] = useState(false);
   const [hasChildPackage, setHasChildPackage] = useState(false); // gäller MITT konto (om jag är barnet)
-  const [myChildren, setMyChildren] = useState([]); // aktiverade barn, om JAG är förälder
-  const [isParent, setIsParent] = useState(false); // har JAG någonsin skapat ett barnpaket åt någon
+  const [myChildren, setMyChildren] = useState([]); // ALLA barn (väntande + aktiva), om JAG är förälder
+  const [isParent, setIsParent] = useState(false);
+  const [resetPasswordFor, setResetPasswordFor] = useState(null); // childProfileId eller null
+  const [newChildPassword, setNewChildPassword] = useState('');
+  const [resetMsg, setResetMsg] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   async function loadChildPackages(uid) {
     const { data: myProfile } = await supabase.from('profiles').select('child_package_id').eq('id', uid).single();
@@ -44,10 +45,10 @@ export default function ProfilePage() {
 
     const { data: parentOf } = await supabase
       .from('child_packages')
-      .select('id, child_username_requested, activated, child_profile_id, invite_code')
+      .select('id, child_username_requested, activated, child_profile_id')
       .eq('parent_id', uid);
     setIsParent((parentOf || []).length > 0);
-    setMyChildren((parentOf || []).filter(c => c.activated));
+    setMyChildren(parentOf || []);
   }
 
   async function loadFamilyPlan(uid) {
@@ -222,20 +223,32 @@ export default function ProfilePage() {
     await loadFamilyPlan(userId);
   }
 
-  async function handleJoinChildPackage(e) {
+  async function handleResetChildPassword(e) {
     e.preventDefault();
-    setChildPackageMsg('');
-    const code = childPackageCode.trim();
-    if (!code) return;
-    const { error } = await supabase.rpc('join_child_package', { p_code: code });
-    if (error) {
-      setChildPackageMsg(error.message.includes('använd') ? 'Koden är redan använd.' : 'Ogiltig kod.');
+    setResetMsg('');
+    if (newChildPassword.length < 6) {
+      setResetMsg('Lösenordet måste vara minst 6 tecken.');
       return;
     }
-    setChildPackageCode('');
-    setShowChildJoin(false);
-    setChildPackageMsg('Klart! De 50 barnspelen är nu upplåsta på det här kontot.');
-    await loadChildPackages(userId);
+    setResetting(true);
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    const res = await fetch('/api/reset-child-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ childProfileId: resetPasswordFor, newPassword: newChildPassword })
+    });
+    const result = await res.json();
+    setResetting(false);
+
+    if (!res.ok) {
+      setResetMsg(result.error || 'Något gick fel.');
+      return;
+    }
+    setResetMsg('Klart! Nytt lösenord satt.');
+    setNewChildPassword('');
+    setResetPasswordFor(null);
   }
 
   if (loading) return <div className="wrap"><p className="subhead">Laddar…</p></div>;
@@ -457,52 +470,63 @@ export default function ProfilePage() {
         </p>
       )}
 
-      {isParent && (
+      {!isParent && !hasChildPackage && (
         <p className="subhead" style={{ marginBottom: 14 }}>
-          Du har köpt ett barnpaket åt någon annan — inget att lösa in på det här kontot.
-          Se statistiken nedan.
+          Inget barnpaket kopplat till det här kontot. Vill du köpa ett åt ditt barn?{' '}
+          <a href="/prenumerera">Läs mer här</a>.
         </p>
       )}
 
-      {!hasChildPackage && !isParent && (
+      {isParent && (
         <>
-          <p className="subhead" style={{ marginBottom: 10 }}>
-            Har en förälder köpt ett barnpaket och skickat en kod? Lös in den här — på{' '}
-            <b style={{ color: 'var(--amber-glow)' }}>barnets eget konto</b>, alltså det du är
-            inloggad på just nu — för att låsa upp spelen permanent.
-          </p>
-          <button className="plaque" style={{ marginBottom: 10 }} onClick={() => { setShowChildJoin(s => !s); setChildPackageMsg(''); }}>
-            Lös in barnpaket-kod
-          </button>
-          {showChildJoin && (
-            <form onSubmit={handleJoinChildPackage} className="panel" style={{ marginBottom: 16 }}>
-              <input
-                className="field"
-                type="text"
-                placeholder="Kod, t.ex. N57R6Y"
-                value={childPackageCode}
-                onChange={e => setChildPackageCode(e.target.value)}
-                style={{ textTransform: 'uppercase' }}
-              />
-              <button className="btn btn-primary" type="submit">Lös in</button>
-            </form>
-          )}
-        </>
-      )}
-      {childPackageMsg && <div className="toast" style={{ marginTop: 4, marginBottom: 10 }}>{childPackageMsg}</div>}
+          <p className="subhead" style={{ marginBottom: 10 }}>Barnkonton du skapat:</p>
+          {myChildren.map(c => (
+            <div key={c.id} className="panel" style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: 15, textTransform: 'uppercase' }}>
+                    {c.child_username_requested}
+                  </span>{' '}
+                  {c.activated
+                    ? <span className="tag" style={{ background: '#2a3f2a', color: '#7fc98f' }}>Aktivt</span>
+                    : <span className="tag" style={{ background: '#3a2c1a', color: '#e0b37f' }}>Väntar på betalning</span>}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {c.activated && (
+                    <a href={`/profil/barnstatistik/${c.child_profile_id}`} className="btn btn-ghost" style={{ width: 'auto', padding: '6px 12px', fontSize: 12.5 }}>
+                      Se statistik →
+                    </a>
+                  )}
+                  <button
+                    className="btn btn-ghost"
+                    style={{ width: 'auto', padding: '6px 12px', fontSize: 12.5 }}
+                    onClick={() => { setResetPasswordFor(c.child_profile_id); setResetMsg(''); setNewChildPassword(''); }}
+                  >
+                    Sätt nytt lösenord
+                  </button>
+                </div>
+              </div>
 
-      {myChildren.length > 0 && (
-        <>
-          <p className="subhead" style={{ marginBottom: 8, marginTop: 10 }}>Du är förälder till:</p>
-          <div className="list-grid">
-            {myChildren.map(c => (
-              <a key={c.id} href={`/profil/barnstatistik/${c.child_profile_id}`} className="plaque" style={{ borderColor: '#c98f4f' }}>
-                {c.child_username_requested || 'Barnkonto'} — se statistik →
-              </a>
-            ))}
-          </div>
+              {resetPasswordFor === c.child_profile_id && (
+                <form onSubmit={handleResetChildPassword} style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+                  <input
+                    className="field"
+                    type="password"
+                    placeholder="Nytt lösenord (minst 6 tecken)"
+                    value={newChildPassword}
+                    onChange={e => setNewChildPassword(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <button className="btn btn-primary" type="submit" disabled={resetting}>
+                    {resetting ? 'Sparar…' : 'Spara nytt lösenord'}
+                  </button>
+                </form>
+              )}
+            </div>
+          ))}
         </>
       )}
+      {resetMsg && <div className="toast" style={{ marginTop: 4 }}>{resetMsg}</div>}
     </div>
   );
 }
