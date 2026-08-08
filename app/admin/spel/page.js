@@ -17,7 +17,7 @@ export default function AdminSpelOverview() {
         pool: rows.filter(g => g.daily_pool).length,
         tested: rows.filter(g => g.tested).length,
         childPackage: rows.filter(g => g.child_package).length,
-        untested: rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool && !g.tested).length,
+        untested: rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool && !g.tested && !g.child_package).length,
         total: rows.length
       });
       setLoading(false);

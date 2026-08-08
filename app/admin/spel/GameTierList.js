@@ -22,12 +22,12 @@ export default function GameTierList({ filterTier }) {
   async function load() {
     const { data } = await supabase
       .from('game_lists')
-      .select('id, slug, title, featured, member_exclusive, daily_pool, tested')
+      .select('id, slug, title, featured, member_exclusive, daily_pool, tested, child_package')
       .order('title');
 
     const rows = data || [];
     const filtered = filterTier === 'untested'
-      ? rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool && !g.tested)
+      ? rows.filter(g => !g.featured && !g.member_exclusive && !g.daily_pool && !g.tested && !g.child_package)
       : rows.filter(g => g[filterTier]);
 
     setGames(filtered);
