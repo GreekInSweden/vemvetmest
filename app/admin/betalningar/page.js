@@ -50,7 +50,9 @@ export default function AdminBetalningar() {
 
   useEffect(() => { loadRecent(); }, []);
 
-  async function activateChildPackage(packageId, childProfileId, parentId) {
+  async function activateChildPackage(packageId, childProfileId, parentId, childUsername) {
+    const ok = window.confirm(`Aktivera barnpaket (99 kr) för "${childUsername}"?`);
+    if (!ok) return;
     setPaymentMsg('');
     const { error: pkgError } = await supabase.from('child_packages').update({ activated: true }).eq('id', packageId);
     if (pkgError) {
@@ -88,7 +90,9 @@ export default function AdminBetalningar() {
     await loadPendingChildInfo((data || []).map(u => u.id));
   }
 
-  async function markPaid(userId, planKey) {
+  async function markPaid(userId, planKey, username) {
+    const ok = window.confirm(`Markera "${username}" som betald: ${PLAN_PRICES[planKey].label} (${PLAN_PRICES[planKey].amount} kr)?`);
+    if (!ok) return;
     setPaymentMsg('');
     const days = PLAN_PRICES[planKey].days;
     const paidUntil = new Date();
@@ -120,9 +124,11 @@ export default function AdminBetalningar() {
   }
 
   async function markPaidCompany(userId, username) {
-    setPaymentMsg('');
     const seats = Math.max(COMPANY_MIN_SEATS, parseInt(companySeats[userId] || COMPANY_MIN_SEATS, 10));
     const price = seats * COMPANY_PRICE_PER_SEAT;
+    const ok = window.confirm(`Markera "${username}" som betald: Företag, ${seats} platser (${price} kr)?`);
+    if (!ok) return;
+    setPaymentMsg('');
 
     const paidUntil = new Date();
     paidUntil.setDate(paidUntil.getDate() + 366);
@@ -215,7 +221,7 @@ export default function AdminBetalningar() {
                 <button
                   className="btn btn-ghost"
                   style={{ width: 'auto', borderColor: '#c98f4f', color: '#e0b37f' }}
-                  onClick={() => activateChildPackage(myPendingPackage.id, myPendingPackage.child_profile_id, myPendingPackage.parent_id)}
+                  onClick={() => activateChildPackage(myPendingPackage.id, myPendingPackage.child_profile_id, myPendingPackage.parent_id, u.username)}
                 >
                   Aktivera barnpaket (99 kr)
                 </button>
@@ -223,7 +229,7 @@ export default function AdminBetalningar() {
             ) : (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 {Object.entries(PLAN_PRICES).map(([key, val]) => (
-                  <button key={key} className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => markPaid(u.id, key)}>
+                  <button key={key} className="btn btn-ghost" style={{ width: 'auto' }} onClick={() => markPaid(u.id, key, u.username)}>
                     {val.label} ({val.amount} kr)
                   </button>
                 ))}
@@ -253,7 +259,7 @@ export default function AdminBetalningar() {
                     <button
                       className="btn btn-ghost"
                       style={{ width: 'auto', borderColor: '#c98f4f', color: '#e0b37f', padding: '4px 12px', fontSize: 12 }}
-                      onClick={() => activateChildPackage(c.id, c.child_profile_id, u.id)}
+                      onClick={() => activateChildPackage(c.id, c.child_profile_id, u.id, c.child_username_requested)}
                     >
                       Aktivera barnpaket (99 kr)
                     </button>
