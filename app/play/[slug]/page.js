@@ -113,9 +113,11 @@ export default function PlayPage() {
 
       let diff = 'hard';
       let childPackageActive = false;
+      let isAdmin = false;
       if (uid) {
-        const { data: profile } = await supabase.from('profiles').select('difficulty, child_package_id').eq('id', uid).single();
+        const { data: profile } = await supabase.from('profiles').select('difficulty, child_package_id, is_admin').eq('id', uid).single();
         diff = profile?.difficulty || 'hard';
+        isAdmin = !!profile?.is_admin;
         if (profile?.child_package_id) {
           const { data: pkg } = await supabase.from('child_packages').select('paid_until').eq('id', profile.child_package_id).single();
           const todayStr = new Date().toISOString().slice(0, 10);
@@ -134,8 +136,10 @@ export default function PlayPage() {
       setList(listRow);
 
       // Barnpaket-spel kräver en AKTIV (icke utgången) prenumeration -
-      // helt separat spärr från medlemsspel/betalning.
-      if (listRow.child_package && !childPackageActive) {
+      // helt separat spärr från medlemsspel/betalning. Admin kommer
+      // alltid förbi spärren för att kunna testspela var som helst i
+      // admin-panelen, oavsett egen prenumerationsstatus.
+      if (listRow.child_package && !childPackageActive && !isAdmin) {
         setChildPackageLocked(true);
         return;
       }
