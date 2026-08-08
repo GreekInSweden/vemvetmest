@@ -54,7 +54,7 @@ export default function AdminBetalningar() {
     setPaymentSearching(true);
     const { data } = await supabase
       .from('profiles')
-      .select('id, username, paid_until, is_child, created_at, child_package_id')
+      .select('id, username, paid_until, is_child, created_at, child_package_id, is_admin, is_semi_admin')
       .order('created_at', { ascending: false })
       .limit(20);
     setPaymentSearching(false);
@@ -117,7 +117,7 @@ export default function AdminBetalningar() {
     setPaymentSearching(true);
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, paid_until, is_child, created_at, child_package_id')
+      .select('id, username, paid_until, is_child, created_at, child_package_id, is_admin, is_semi_admin')
       .ilike('username', `%${term}%`)
       .limit(20);
     setPaymentSearching(false);
@@ -127,6 +127,20 @@ export default function AdminBetalningar() {
     }
     setPaymentResults(data || []);
     await loadPendingChildInfo((data || []).map(u => u.id), (data || []).map(u => u.child_package_id));
+  }
+
+  async function toggleSemiAdmin(userId, username, currentValue) {
+    const action = currentValue ? 'Ta bort semi-admin från' : 'Gör';
+    const ok = window.confirm(`${action} "${username}" ${currentValue ? '' : 'till semi-admin (bara tillgång till Spel-mappen i admin)'}?`);
+    if (!ok) return;
+    setPaymentMsg('');
+    const { error } = await supabase.from('profiles').update({ is_semi_admin: !currentValue }).eq('id', userId);
+    if (error) {
+      setPaymentMsg('Kunde inte ändra: ' + error.message);
+      return;
+    }
+    setPaymentResults(prev => prev.map(u => u.id === userId ? { ...u, is_semi_admin: !currentValue } : u));
+    setPaymentMsg(`"${username}" är ${!currentValue ? 'nu semi-admin' : 'inte längre semi-admin'}.`);
   }
 
   async function markPaid(userId, planKey, username) {
@@ -247,7 +261,10 @@ export default function AdminBetalningar() {
           <div key={u.id} className="panel" style={{ marginBottom: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
               <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 16, textTransform: 'uppercase' }}>
-                {u.username} {u.is_child && <span className="tag" style={{ marginLeft: 6 }}>Barn</span>}
+                {u.username}
+                {u.is_child && <span className="tag" style={{ marginLeft: 6 }}>Barn</span>}
+                {u.is_admin && <span className="tag" style={{ marginLeft: 6, background: '#3a2c1a', color: '#e0b37f' }}>Admin</span>}
+                {u.is_semi_admin && <span className="tag" style={{ marginLeft: 6, background: '#1a2c3a', color: '#7fa8c9' }}>Semi-admin</span>}
               </div>
               <div className="subhead" style={{ fontSize: 12.5 }}>
                 {u.paid_until
@@ -255,6 +272,18 @@ export default function AdminBetalningar() {
                   : 'Har aldrig betalat'}
               </div>
             </div>
+
+            {!u.is_admin && (
+              <div style={{ marginBottom: 10 }}>
+                <button
+                  className="btn btn-ghost"
+                  style={{ width: 'auto', padding: '4px 12px', fontSize: 12, borderColor: u.is_semi_admin ? '#7fa8c9' : undefined }}
+                  onClick={() => toggleSemiAdmin(u.id, u.username, u.is_semi_admin)}
+                >
+                  {u.is_semi_admin ? 'Ta bort semi-admin' : 'Gör till semi-admin (bara Spel)'}
+                </button>
+              </div>
+            )}
 
             {myPendingPackage ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
