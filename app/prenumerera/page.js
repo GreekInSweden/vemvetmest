@@ -5,15 +5,16 @@ import QRCode from 'qrcode';
 import { supabase } from '../../lib/supabaseClient';
 import {
   buildSwishLink, SWISH_NUMBER, PLAN_PRICES,
-  COMPANY_PRICE_PER_SEAT, COMPANY_MIN_SEATS
+  COMPANY_PRICE_PER_SEAT, COMPANY_MIN_SEATS, CHILD_PACKAGE_PRICE
 } from '../../lib/swish';
 
-const TABS = { ...PLAN_PRICES, company: { label: 'Företag' } };
+const TABS = { ...PLAN_PRICES, company: { label: 'Företag' }, child: { label: 'Barnpaket' } };
 const QR_SIZE = 260;
 
 export default function PrenumereraPage() {
   const [plan, setPlan] = useState('yearly');
   const [seats, setSeats] = useState(COMPANY_MIN_SEATS);
+  const [childUsername, setChildUsername] = useState('');
   const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
   const canvasRef = useRef(null);
@@ -36,14 +37,18 @@ export default function PrenumereraPage() {
   }, []);
 
   const isCompany = plan === 'company';
-  const amount = isCompany ? seats * COMPANY_PRICE_PER_SEAT : PLAN_PRICES[plan].amount;
+  const isChild = plan === 'child';
+  const amount = isCompany ? seats * COMPANY_PRICE_PER_SEAT : (isChild ? CHILD_PACKAGE_PRICE : PLAN_PRICES[plan].amount);
   // Swish avvisar länken ("felaktig länk") om meddelandet innehåller
   // understreck (bekräftat genom test) - byter ut alla tecken som inte
   // är bokstäver/siffror/bindestreck mot bindestreck för säkerhets skull.
   // Påverkar bara Swish-meddelandet, inte det riktiga användarnamnet.
   const safeUsername = username ? username.replace(/[^a-zA-Z0-9-]/g, '-') : null;
+  const safeChildLabel = childUsername ? childUsername.replace(/[^a-zA-Z0-9-]/g, '-') : '';
   const message = safeUsername
-    ? (isCompany ? `KDA-${safeUsername}-F${seats}` : `KDA-${safeUsername}`)
+    ? (isCompany ? `KDA-${safeUsername}-F${seats}`
+      : isChild ? `KDA-${safeUsername}-BARN${safeChildLabel ? '-' + safeChildLabel : ''}`
+      : `KDA-${safeUsername}`)
     : null;
   const swishLink = message
     ? buildSwishLink({ payeeNumber: SWISH_NUMBER, amount, message, editableFields: [] })
@@ -98,6 +103,7 @@ export default function PrenumereraPage() {
       <div className="upgrade-card" style={{ maxWidth: 480, margin: '0 auto 24px', textAlign: 'center' }}>
         {plan === 'family' && <span className="upgrade-badge">4 konton — en på oss</span>}
         {isCompany && <span className="upgrade-badge">Skalbart för team och företag</span>}
+        {isChild && <span className="upgrade-badge">Permanent — försvinner aldrig</span>}
 
         {isCompany && (
           <div style={{ marginBottom: 16 }}>
@@ -119,6 +125,18 @@ export default function PrenumereraPage() {
           </div>
         )}
 
+        {isChild && (
+          <div style={{ marginBottom: 16, textAlign: 'left' }}>
+            <label className="subhead" style={{ display: 'block', marginBottom: 8 }}>Barnets önskade användarnamn (valfritt)</label>
+            <input
+              className="field"
+              placeholder="t.ex. Liten-Anna"
+              value={childUsername}
+              onChange={e => setChildUsername(e.target.value)}
+            />
+          </div>
+        )}
+
         <div className="upgrade-price" style={{ fontSize: 44, marginBottom: 4 }}>
           {amount} kr{isCompany && <span style={{ fontSize: 15 }}> / år</span>}
         </div>
@@ -126,6 +144,7 @@ export default function PrenumereraPage() {
           {plan === 'monthly' ? 'Gäller i cirka en månad från betalning.' :
            plan === 'yearly' ? 'Gäller i ett helt år från betalning.' :
            plan === 'family' ? '4 fristående konton i ett helt år. Du blir ägare av familjeplanen och får en kod att dela.' :
+           isChild ? '50 utvalda spel anpassade för barn — permanent tillgång, ingen förnyelse, försvinner aldrig. Du får en kod att lösa in på barnets eget konto.' :
            `${seats} fristående konton i ett helt år, samlade i en egen privat liga med gemensam topplista.`}
         </p>
 
