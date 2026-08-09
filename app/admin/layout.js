@@ -9,7 +9,8 @@ const FULL_LINKS = [
   { href: '/admin/betalningar', label: 'Betalningar' },
   { href: '/admin/ligor', label: 'Ligor' },
   { href: '/admin/spel', label: 'Spel' },
-  { href: '/admin/statistik', label: 'Statistik' }
+  { href: '/admin/statistik', label: 'Statistik' },
+  { href: '/admin/meddelanden', label: 'Meddelanden' }
 ];
 
 const SEMI_ADMIN_LINKS = [
