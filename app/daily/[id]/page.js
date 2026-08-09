@@ -11,48 +11,6 @@ function ymd(d) {
   const pad = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
-function normalize(s) {
-  return s.toString().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
-}
-function levenshtein(a, b) {
-  const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
-  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[a.length][b.length];
-}
-function fuzzyThreshold(len) {
-  if (len <= 4) return 0;
-  if (len <= 8) return 1;
-  return 2;
-}
-function resolveFuzzyTarget(n, items) {
-  const seen = new Set();
-  const candidates = [];
-  for (const item of items) {
-    const targets = [item.name, ...(item.aliases || [])];
-    for (const t of targets) {
-      const nt = normalize(t);
-      if (seen.has(nt)) continue;
-      seen.add(nt);
-      const dist = levenshtein(n, nt);
-      const threshold = Math.min(fuzzyThreshold(nt.length), fuzzyThreshold(n.length));
-      if (dist > 0 && dist <= threshold) candidates.push({ target: nt, dist });
-    }
-  }
-  if (candidates.length === 0) return null;
-  const minDist = Math.min(...candidates.map(c => c.dist));
-  const closest = [...new Set(candidates.filter(c => c.dist === minDist).map(c => c.target))];
-  return closest.length === 1 ? closest[0] : null;
-}
 
 function formatValue(item, list) {
   const v = Number(item.value);
@@ -78,8 +36,9 @@ export default function DailyPlayPage() {
   const [userId, setUserId] = useState(null);
   const [challenge, setChallenge] = useState(null);
   const [list, setList] = useState(null);
-  const [items, setItems] = useState([]);
-  const [eligibility, setEligibility] = useState(null); // { ok, reason, usingLife }
+  const [allRanks, setAllRanks] = useState([]);
+  const [revealed, setRevealed] = useState({});
+  const [eligibility, setEligibility] = useState(null);
   const [alreadyPlayed, setAlreadyPlayed] = useState(null);
 
   const [guessedRanks, setGuessedRanks] = useState(new Set());
@@ -95,10 +54,13 @@ export default function DailyPlayPage() {
   const inputRef = useRef(null);
   const timerRef = useRef(null);
   const guessedRef = useRef(new Set());
+  const revealedRef = useRef({});
   const missesRef = useRef(0);
   const finishedRef = useRef(false);
   const timeLimitRef = useRef(300);
   const usingLifeRef = useRef(false);
+  const listRef = useRef(null);
+  const challengeRef = useRef(null);
 
   useEffect(() => {
     async function load() {
@@ -125,6 +87,7 @@ export default function DailyPlayPage() {
 
       if (!challengeRow) return;
       setChallenge(challengeRow);
+      challengeRef.current = challengeRow;
 
       const { data: listRow } = await supabase
         .from('game_lists')
@@ -132,13 +95,15 @@ export default function DailyPlayPage() {
         .eq('id', challengeRow.list_id)
         .single();
       setList(listRow);
+      listRef.current = listRow;
 
-      const { data: itemRows } = await supabase
+      // Bara rank-siffrorna hämtas i förväg - aldrig namn/värden.
+      const { data: rankRows } = await supabase
         .from('list_items')
-        .select('*')
+        .select('rank')
         .eq('list_id', listRow.id)
         .order('rank');
-      setItems(itemRows || []);
+      setAllRanks((rankRows || []).map(r => r.rank));
 
       const { data: existingAttempt } = await supabase
         .from('daily_attempts')
@@ -152,8 +117,6 @@ export default function DailyPlayPage() {
         return;
       }
 
-      // Beräkna rätt till spel: idag = fritt, annars bara på FREDAGEN samma
-      // vecka (den enda dagen liv kan lösas in), och bara om man har liv kvar.
       const now = stockholmNow();
       const isoWeekday = ((now.getDay() + 6) % 7) + 1;
       const today = ymd(now);
@@ -205,7 +168,23 @@ export default function DailyPlayPage() {
       inputRef.current.focus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eligibility, items]);
+  }, [eligibility, allRanks]);
+
+  // ---- Fuskskydd: byter man flik/app under ett pågående spel
+  // försvinner 80% av återstående tid.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.hidden && !finishedRef.current && listRef.current) {
+        setSecondsLeft(s => {
+          const penalized = Math.max(1, Math.floor(s * 0.2));
+          showToast('⚠️ Du bytte flik/app — 80% av återstående tid försvann!');
+          return penalized;
+        });
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   function startTimer() {
     clearInterval(timerRef.current);
@@ -234,12 +213,27 @@ export default function DailyPlayPage() {
     setEndReason(reason);
     clearInterval(timerRef.current);
 
-    if (userId && challenge) {
+    try {
+      const res = await fetch('/api/game/reveal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listId: listRef.current.id })
+      });
+      const data = await res.json();
+      const fullRevealed = { ...revealedRef.current };
+      (data.items || []).forEach(it => { fullRevealed[it.rank] = { name: it.name, value: it.value }; });
+      revealedRef.current = fullRevealed;
+      setRevealed(fullRevealed);
+    } catch {
+      // facit-hämtningen strulade - resultatet sparas ändå nedan
+    }
+
+    if (userId && challengeRef.current) {
       await supabase.from('daily_attempts').insert({
         user_id: userId,
-        daily_challenge_id: challenge.id,
+        daily_challenge_id: challengeRef.current.id,
         guessed: guessedRef.current.size,
-        total: items.length,
+        total: allRanks.length,
         misses: missesRef.current,
         seconds: timeLimitRef.current - (reason === 'timeout' ? 0 : secondsLeft),
         completed: reason === 'complete',
@@ -249,125 +243,89 @@ export default function DailyPlayPage() {
     }
   }
 
-  function submitGuess(e) {
+  async function submitGuess(e) {
     e.preventDefault();
     if (finishedRef.current) return;
     const raw = guess.trim();
-    if (!raw) return;
-    let n = normalize(raw);
-    let wasFuzzy = false;
-    const mode = list?.guess_mode || 'default';
+    if (!raw || !listRef.current) return;
 
-    if (mode === 'strict_order') {
-      const remaining = items.filter(item => !guessedRef.current.has(item.rank));
-      if (remaining.length === 0) return;
-      const nextItem = remaining.reduce((a, b) => (a.rank < b.rank ? a : b));
+    let result;
+    try {
+      const res = await fetch('/api/game/guess', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listId: listRef.current.id,
+          guess: raw,
+          guessedRanks: Array.from(guessedRef.current)
+        })
+      });
+      result = await res.json();
+    } catch {
+      showToast('Kunde inte kontrollera gissningen - försök igen.');
+      return;
+    }
 
-      let isMatch = normalize(nextItem.name) === n || (nextItem.aliases || []).some(a => normalize(a) === n);
-      if (!isMatch) {
-        for (const t of [nextItem.name, ...(nextItem.aliases || [])]) {
-          const nt = normalize(t);
-          const dist = levenshtein(n, nt);
-          const threshold = Math.min(fuzzyThreshold(nt.length), fuzzyThreshold(n.length));
-          if (dist > 0 && dist <= threshold) { isMatch = true; wasFuzzy = true; break; }
-        }
-      }
-
-      if (!isMatch) {
-        missesRef.current += 1;
-        setShake(true);
-        setTimeout(() => setShake(false), 300);
-        showToast('Fel — det är inte nästa svar i ordningen.');
+    if (!result.correct) {
+      if (result.alreadyGuessedName) {
+        showToast('Redan gissat: ' + result.alreadyGuessedName);
         setGuess('');
         return;
       }
-
-      const next = new Set(guessedRef.current);
-      next.add(nextItem.rank);
-      guessedRef.current = next;
-      setGuessedRanks(next);
-      setGuess('');
-      showToast(wasFuzzy
-        ? `Rätt! #${nextItem.rank} ${nextItem.name} (tolkat trots stavfel)`
-        : `Rätt! #${nextItem.rank} ${nextItem.name}`);
-      if (next.size === items.length) endGame('complete');
-      return;
-    }
-
-    let matching = items.filter(item =>
-      normalize(item.name) === n || (item.aliases || []).some(a => normalize(a) === n)
-    );
-
-    if (matching.length === 0) {
-      const resolved = resolveFuzzyTarget(n, items);
-      if (resolved) {
-        n = resolved;
-        wasFuzzy = true;
-        matching = items.filter(item =>
-          normalize(item.name) === n || (item.aliases || []).some(a => normalize(a) === n)
-        );
-      }
-    }
-
-    if (matching.length === 0) {
       missesRef.current += 1;
       setShake(true);
       setTimeout(() => setShake(false), 300);
-      showToast('Inte med på listan.');
+      showToast(listRef.current.guess_mode === 'strict_order'
+        ? 'Fel — det är inte nästa svar i ordningen.'
+        : 'Inte med på listan.');
       setGuess('');
       return;
-    }
-
-    const unguessedMatching = matching.filter(item => !guessedRef.current.has(item.rank));
-
-    if (unguessedMatching.length === 0) {
-      showToast('Redan gissat: ' + matching[0].name);
-      setGuess('');
-      return;
-    }
-
-    let newMatches;
-    let remainingSameName = 0;
-
-    if (mode === 'multi_fill') {
-      newMatches = unguessedMatching;
-    } else {
-      const exactUnguessed = unguessedMatching.filter(item => normalize(item.name) === n);
-      remainingSameName = exactUnguessed.length > 1 ? exactUnguessed.length - 1 : 0;
-      newMatches = exactUnguessed.length > 0
-        ? [exactUnguessed.reduce((a, b) => (a.rank < b.rank ? a : b))]
-        : unguessedMatching;
     }
 
     const next = new Set(guessedRef.current);
-    newMatches.forEach(item => next.add(item.rank));
+    const nextRevealed = { ...revealedRef.current };
+    result.matches.forEach(m => {
+      next.add(m.rank);
+      nextRevealed[m.rank] = { name: m.name, value: m.value };
+    });
     guessedRef.current = next;
+    revealedRef.current = nextRevealed;
     setGuessedRanks(next);
+    setRevealed(nextRevealed);
     setGuess('');
 
-    if (newMatches.length > 1) {
-      showToast(`Rätt! ${newMatches.length} träffar: ` + newMatches.map(m => '#' + m.rank + ' ' + m.name).join(', '));
-    } else if (remainingSameName > 0) {
-      showToast(`Rätt! #${newMatches[0].rank} ${newMatches[0].name} (${remainingSameName} till kvar i listan — gissa igen)`);
-    } else if (wasFuzzy) {
-      showToast(`Rätt! #${newMatches[0].rank} ${newMatches[0].name} (tolkat trots stavfel)`);
+    if (result.matches.length > 1) {
+      showToast(`Rätt! ${result.matches.length} träffar: ` + result.matches.map(m => '#' + m.rank + ' ' + m.name).join(', '));
+    } else if (result.remainingSameName > 0) {
+      showToast(`Rätt! #${result.matches[0].rank} ${result.matches[0].name} (${result.remainingSameName} till kvar i listan — gissa igen)`);
+    } else if (result.wasFuzzy) {
+      showToast(`Rätt! #${result.matches[0].rank} ${result.matches[0].name} (tolkat trots stavfel)`);
     } else {
-      showToast('Rätt! #' + newMatches[0].rank + ' ' + newMatches[0].name);
+      showToast('Rätt! #' + result.matches[0].rank + ' ' + result.matches[0].name);
     }
 
-    if (next.size === items.length) endGame('complete');
+    if (result.allGuessed) endGame('complete');
   }
 
-  function handleHint() {
-    if (finishedRef.current || difficultyRef.current === 'hard') return;
-    const remaining = items.filter(item => !guessedRef.current.has(item.rank));
-    if (remaining.length === 0) return;
-    const target = remaining.reduce((a, b) => (a.rank < b.rank ? a : b));
+  async function handleHint() {
+    if (finishedRef.current || difficultyRef.current === 'hard' || !listRef.current) return;
+    let result;
+    try {
+      const res = await fetch('/api/game/hint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listId: listRef.current.id, guessedRanks: Array.from(guessedRef.current) })
+      });
+      result = await res.json();
+    } catch {
+      return;
+    }
+    if (result.done) return;
 
     if (difficultyRef.current === 'medium') {
       missesRef.current += 1;
     }
-    setHintMsg(`💡 Rad #${target.rank} börjar på "${target.name[0].toUpperCase()}"`);
+    setHintMsg(`💡 Rad #${result.rank} börjar på "${result.firstLetter}"`);
     setTimeout(() => setHintMsg(''), 4000);
   }
 
@@ -478,7 +436,7 @@ export default function DailyPlayPage() {
         )}
 
         <div className="stats">
-          <div className="stat">Gissade: <b>{guessedRanks.size}</b> / {items.length}</div>
+          <div className="stat">Gissade: <b>{guessedRanks.size}</b> / {allRanks.length}</div>
           <div className="stat">Tid kvar: <b style={isLowTime ? { color: 'var(--miss)' } : undefined}>{formatTime(secondsLeft)}</b></div>
         </div>
 
@@ -515,24 +473,24 @@ export default function DailyPlayPage() {
 
         {finished && (
           <div className="end-banner">
-            {endReason === 'complete' && `Full pott! ${items.length} av ${items.length} på ${formatTime(timeLimitRef.current - secondsLeft)}.`}
-            {endReason === 'timeout' && `Tiden tog slut — du fick ${guessedRanks.size} av ${items.length}.`}
-            {endReason === 'giveup' && `Facit visat — du fick ${guessedRanks.size} av ${items.length} själv.`}
+            {endReason === 'complete' && `Full pott! ${allRanks.length} av ${allRanks.length} på ${formatTime(timeLimitRef.current - secondsLeft)}.`}
+            {endReason === 'timeout' && `Tiden tog slut — du fick ${guessedRanks.size} av ${allRanks.length}.`}
+            {endReason === 'giveup' && `Facit visat — du fick ${guessedRanks.size} av ${allRanks.length} själv.`}
           </div>
         )}
 
         <div className="board-list" style={{ marginTop: 10 }}>
-          {items.map(item => {
-            const isGuessed = guessedRanks.has(item.rank);
-            const isRevealedByEnd = finished && !isGuessed;
+          {allRanks.map(rank => {
+            const isGuessed = guessedRanks.has(rank);
+            const data = revealed[rank];
             return (
-              <div className="row" key={item.rank}>
-                <div className="rank">{item.rank}</div>
-                <div className={`flap ${isGuessed ? 'revealed' : ''} ${isRevealedByEnd ? 'given-up' : ''}`}>
-                  {isGuessed || isRevealedByEnd ? (
+              <div className="row" key={rank}>
+                <div className="rank">{rank}</div>
+                <div className={`flap ${isGuessed ? 'revealed' : ''} ${finished && !isGuessed ? 'given-up' : ''}`}>
+                  {data ? (
                     <>
-                      <span className="name">{item.name}</span>
-                      <span className="value">{formatValue(item, list)}</span>
+                      <span className="name">{data.name}</span>
+                      <span className="value">{formatValue(data, list)}</span>
                     </>
                   ) : (
                     <span className="placeholder">— — — — — —</span>

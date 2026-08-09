@@ -4,59 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabaseClient';
 
-function normalize(s) {
-  return s.toString().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
-}
-
-// Litet redigeringsavstånd (Levenshtein) för att tolerera enstaka
-// stavfel - en bortglömd, felskriven eller extra bokstav.
-function levenshtein(a, b) {
-  const dp = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
-  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
-  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-  return dp[a.length][b.length];
-}
-
-// Kortare namn tål mindre marginal (annars blir korta ord som "USA" för
-// lätta att träffa av misstag) - längre namn tål lite mer.
-function fuzzyThreshold(len) {
-  if (len <= 4) return 0;
-  if (len <= 8) return 1;
-  return 2;
-}
-
-// Om ingen exakt träff finns: leta efter ett unikt, "nästan rätt" namn
-// eller alias i hela listan. Returnerar det normaliserade rätta namnet
-// om det är otvetydigt, annars null (då räknas gissningen som fel).
-function resolveFuzzyTarget(n, items) {
-  const seen = new Set();
-  const candidates = [];
-  for (const item of items) {
-    const targets = [item.name, ...(item.aliases || [])];
-    for (const t of targets) {
-      const nt = normalize(t);
-      if (seen.has(nt)) continue;
-      seen.add(nt);
-      const dist = levenshtein(n, nt);
-      const threshold = Math.min(fuzzyThreshold(nt.length), fuzzyThreshold(n.length));
-      if (dist > 0 && dist <= threshold) candidates.push({ target: nt, dist });
-    }
-  }
-  if (candidates.length === 0) return null;
-  const minDist = Math.min(...candidates.map(c => c.dist));
-  const closest = [...new Set(candidates.filter(c => c.dist === minDist).map(c => c.target))];
-  return closest.length === 1 ? closest[0] : null;
-}
-
 function formatValue(item, list) {
   const v = Number(item.value);
   switch (list.value_format) {
@@ -81,7 +28,8 @@ export default function PlayPage() {
   const params = useParams();
   const [userId, setUserId] = useState(null);
   const [list, setList] = useState(null);
-  const [items, setItems] = useState([]);
+  const [allRanks, setAllRanks] = useState([]); // bara rank-siffrorna, ALDRIG namn/värden i förväg
+  const [revealed, setRevealed] = useState({}); // rank -> { name, value } - bara för bekräftat rätta/spelet-slut
   const [guessedRanks, setGuessedRanks] = useState(new Set());
   const [misses, setMisses] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -98,16 +46,15 @@ export default function PlayPage() {
   const inputRef = useRef(null);
   const timerRef = useRef(null);
   const guessedRef = useRef(new Set());
+  const revealedRef = useRef({});
   const missesRef = useRef(0);
   const finishedRef = useRef(false);
   const timeLimitRef = useRef(300);
+  const listRef = useRef(null);
 
   useEffect(() => {
     async function load() {
       const { data: sessionData } = await supabase.auth.getSession();
-      // Ingen inloggning krävs för att TESTA ett övningsspel - resultatet
-      // sparas bara om man är inloggad (userId är null annars, vilket
-      // insert-anropet vid spelslut redan hanterar gracefully).
       const uid = sessionData.session ? sessionData.session.user.id : null;
       setUserId(uid);
 
@@ -134,29 +81,27 @@ export default function PlayPage() {
         .single();
       if (!listRow) return;
       setList(listRow);
+      listRef.current = listRow;
 
-      // Barnpaket-spel kräver en AKTIV (icke utgången) prenumeration -
-      // helt separat spärr från medlemsspel/betalning. Admin kommer
-      // alltid förbi spärren för att kunna testspela var som helst i
-      // admin-panelen, oavsett egen prenumerationsstatus.
       if (listRow.child_package && !childPackageActive && !isAdmin) {
         setChildPackageLocked(true);
         return;
       }
 
-      // Medlemsspel är gratis men kräver ett konto (inte betalning) -
-      // visa en "logga in"-spärr istället för att ladda in listan.
       if (listRow.member_exclusive && !uid) {
         setMemberLocked(true);
         return;
       }
 
-      const { data: itemRows } = await supabase
+      // Hämtar BARA rank-siffrorna för att kunna rita upp brädet - inga
+      // namn eller värden hämtas i förväg. Databasen är dessutom låst så
+      // att bara "rank"-kolumnen går att läsa direkt överhuvudtaget.
+      const { data: rankRows } = await supabase
         .from('list_items')
-        .select('*')
+        .select('rank')
         .eq('list_id', listRow.id)
         .order('rank');
-      setItems(itemRows || []);
+      setAllRanks((rankRows || []).map(r => r.rank));
 
       const baseLimit = listRow.time_limit_seconds || 300;
       const limit = diff === 'easy' ? Math.round(baseLimit * 1.5) : baseLimit;
@@ -168,7 +113,24 @@ export default function PlayPage() {
     return () => clearInterval(timerRef.current);
   }, [params.slug, router]);
 
-  useEffect(() => { inputRef.current && inputRef.current.focus(); }, [items]);
+  useEffect(() => { inputRef.current && inputRef.current.focus(); }, [allRanks]);
+
+  // ---- Fuskskydd: byter man flik/app under ett pågående spel
+  // försvinner 80% av återstående tid. Enkel, ärlig spärr mot att
+  // googla svaren på en annan skärm eller i en annan app.
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.hidden && !finishedRef.current && listRef.current) {
+        setSecondsLeft(s => {
+          const penalized = Math.max(1, Math.floor(s * 0.2));
+          showToast('⚠️ Du bytte flik/app — 80% av återstående tid försvann!');
+          return penalized;
+        });
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   function startTimer() {
     clearInterval(timerRef.current);
@@ -197,14 +159,31 @@ export default function PlayPage() {
     setEndReason(reason);
     clearInterval(timerRef.current);
 
+    // Nu när spelet är slut - hämta hela facit för att visa i brädet
+    try {
+      const res = await fetch('/api/game/reveal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listId: listRef.current.id })
+      });
+      const data = await res.json();
+      const fullRevealed = { ...revealedRef.current };
+      (data.items || []).forEach(it => { fullRevealed[it.rank] = { name: it.name, value: it.value }; });
+      revealedRef.current = fullRevealed;
+      setRevealed(fullRevealed);
+    } catch {
+      // Om facit-hämtningen skulle strula visas i värsta fall bara
+      // de redan gissade raderna - spara-resultatet nedan går ändå igenom.
+    }
+
     const elapsed = timeLimitRef.current - (reason === 'timeout' ? 0 : secondsLeft);
 
-    if (list) {
+    if (listRef.current) {
       await supabase.from('results').insert({
         user_id: userId || null,
-        list_id: list.id,
+        list_id: listRef.current.id,
         guessed: guessedRef.current.size,
-        total: items.length,
+        total: allRanks.length,
         misses: missesRef.current,
         seconds: elapsed,
         difficulty: difficultyRef.current,
@@ -213,136 +192,91 @@ export default function PlayPage() {
     }
   }
 
-  function submitGuess(e) {
+  async function submitGuess(e) {
     e.preventDefault();
     if (finishedRef.current) return;
     const raw = guess.trim();
-    if (!raw) return;
-    let n = normalize(raw);
-    let wasFuzzy = false;
-    const mode = list?.guess_mode || 'default';
+    if (!raw || !listRef.current) return;
 
-    // ---- Läge: rätt ordning krävs ----
-    // Bara nästa olästa rad (lägsta rank) räknas som rätt svar, oavsett
-    // om gissningen finns någon annanstans i listan.
-    if (mode === 'strict_order') {
-      const remaining = items.filter(item => !guessedRef.current.has(item.rank));
-      if (remaining.length === 0) return;
-      const nextItem = remaining.reduce((a, b) => (a.rank < b.rank ? a : b));
-
-      let isMatch = normalize(nextItem.name) === n || (nextItem.aliases || []).some(a => normalize(a) === n);
-      if (!isMatch) {
-        for (const t of [nextItem.name, ...(nextItem.aliases || [])]) {
-          const nt = normalize(t);
-          const dist = levenshtein(n, nt);
-          const threshold = Math.min(fuzzyThreshold(nt.length), fuzzyThreshold(n.length));
-          if (dist > 0 && dist <= threshold) { isMatch = true; wasFuzzy = true; break; }
-        }
-      }
-
-      if (!isMatch) {
-        missesRef.current += 1;
-        setMisses(missesRef.current);
-        setShake(true);
-        setTimeout(() => setShake(false), 300);
-        showToast('Fel — det är inte nästa svar i ordningen.');
-        setGuess('');
-        return;
-      }
-
-      const next = new Set(guessedRef.current);
-      next.add(nextItem.rank);
-      guessedRef.current = next;
-      setGuessedRanks(next);
-      setGuess('');
-      showToast(wasFuzzy
-        ? `Rätt! #${nextItem.rank} ${nextItem.name} (tolkat trots stavfel)`
-        : `Rätt! #${nextItem.rank} ${nextItem.name}`);
-      if (next.size === items.length) endGame('complete');
+    let result;
+    try {
+      const res = await fetch('/api/game/guess', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listId: listRef.current.id,
+          guess: raw,
+          guessedRanks: Array.from(guessedRef.current)
+        })
+      });
+      result = await res.json();
+    } catch {
+      showToast('Kunde inte kontrollera gissningen - försök igen.');
       return;
     }
 
-    // ---- Läge: standard eller flera träffar ----
-    let matching = items.filter(item =>
-      normalize(item.name) === n || (item.aliases || []).some(a => normalize(a) === n)
-    );
-
-    if (matching.length === 0) {
-      const resolved = resolveFuzzyTarget(n, items);
-      if (resolved) {
-        n = resolved;
-        wasFuzzy = true;
-        matching = items.filter(item =>
-          normalize(item.name) === n || (item.aliases || []).some(a => normalize(a) === n)
-        );
+    if (!result.correct) {
+      if (result.alreadyGuessedName) {
+        showToast('Redan gissat: ' + result.alreadyGuessedName);
+        setGuess('');
+        return;
       }
-    }
-
-    if (matching.length === 0) {
       missesRef.current += 1;
       setMisses(missesRef.current);
       setShake(true);
       setTimeout(() => setShake(false), 300);
-      showToast('Inte med på listan.');
+      showToast(listRef.current.guess_mode === 'strict_order'
+        ? 'Fel — det är inte nästa svar i ordningen.'
+        : 'Inte med på listan.');
       setGuess('');
       return;
-    }
-
-    const unguessedMatching = matching.filter(item => !guessedRef.current.has(item.rank));
-
-    if (unguessedMatching.length === 0) {
-      showToast('Redan gissat: ' + matching[0].name);
-      setGuess('');
-      return;
-    }
-
-    let newMatches;
-    let remainingSameName = 0;
-
-    if (mode === 'multi_fill') {
-      // Alla olästa träffar (samma namn eller alias) fylls i på en gång.
-      newMatches = unguessedMatching;
-    } else {
-      // Standard: exakta namnträffar (t.ex. flera rader som alla heter
-      // "Tyskland") fylls bara en i taget. Alias som matchar flera OLIKA
-      // namn (t.ex. "Eskilstuna") fylls alla samtidigt.
-      const exactUnguessed = unguessedMatching.filter(item => normalize(item.name) === n);
-      remainingSameName = exactUnguessed.length > 1 ? exactUnguessed.length - 1 : 0;
-      newMatches = exactUnguessed.length > 0
-        ? [exactUnguessed.reduce((a, b) => (a.rank < b.rank ? a : b))]
-        : unguessedMatching;
     }
 
     const next = new Set(guessedRef.current);
-    newMatches.forEach(item => next.add(item.rank));
+    const nextRevealed = { ...revealedRef.current };
+    result.matches.forEach(m => {
+      next.add(m.rank);
+      nextRevealed[m.rank] = { name: m.name, value: m.value };
+    });
     guessedRef.current = next;
+    revealedRef.current = nextRevealed;
     setGuessedRanks(next);
+    setRevealed(nextRevealed);
     setGuess('');
 
-    if (newMatches.length > 1) {
-      showToast(`Rätt! ${newMatches.length} träffar: ` + newMatches.map(m => '#' + m.rank + ' ' + m.name).join(', '));
-    } else if (remainingSameName > 0) {
-      showToast(`Rätt! #${newMatches[0].rank} ${newMatches[0].name} (${remainingSameName} till kvar i listan — gissa igen)`);
-    } else if (wasFuzzy) {
-      showToast(`Rätt! #${newMatches[0].rank} ${newMatches[0].name} (tolkat trots stavfel)`);
+    if (result.matches.length > 1) {
+      showToast(`Rätt! ${result.matches.length} träffar: ` + result.matches.map(m => '#' + m.rank + ' ' + m.name).join(', '));
+    } else if (result.remainingSameName > 0) {
+      showToast(`Rätt! #${result.matches[0].rank} ${result.matches[0].name} (${result.remainingSameName} till kvar i listan — gissa igen)`);
+    } else if (result.wasFuzzy) {
+      showToast(`Rätt! #${result.matches[0].rank} ${result.matches[0].name} (tolkat trots stavfel)`);
     } else {
-      showToast('Rätt! #' + newMatches[0].rank + ' ' + newMatches[0].name);
+      showToast('Rätt! #' + result.matches[0].rank + ' ' + result.matches[0].name);
     }
 
-    if (next.size === items.length) endGame('complete');
+    if (result.allGuessed) endGame('complete');
   }
 
-  function handleHint() {
-    if (finishedRef.current || difficultyRef.current === 'hard') return;
-    const remaining = items.filter(item => !guessedRef.current.has(item.rank));
-    if (remaining.length === 0) return;
-    const target = remaining.reduce((a, b) => (a.rank < b.rank ? a : b));
+  async function handleHint() {
+    if (finishedRef.current || difficultyRef.current === 'hard' || !listRef.current) return;
+    let result;
+    try {
+      const res = await fetch('/api/game/hint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listId: listRef.current.id, guessedRanks: Array.from(guessedRef.current) })
+      });
+      result = await res.json();
+    } catch {
+      return;
+    }
+    if (result.done) return;
 
     if (difficultyRef.current === 'medium') {
       missesRef.current += 1;
       setMisses(missesRef.current);
     }
-    setHintMsg(`💡 Rad #${target.rank} börjar på "${target.name[0].toUpperCase()}"`);
+    setHintMsg(`💡 Rad #${result.rank} börjar på "${result.firstLetter}"`);
     setTimeout(() => setHintMsg(''), 4000);
   }
 
@@ -353,9 +287,11 @@ export default function PlayPage() {
 
   function restart() {
     guessedRef.current = new Set();
+    revealedRef.current = {};
     missesRef.current = 0;
     finishedRef.current = false;
     setGuessedRanks(new Set());
+    setRevealed({});
     setMisses(0);
     setSecondsLeft(timeLimitRef.current);
     setFinished(false);
@@ -451,7 +387,7 @@ export default function PlayPage() {
         )}
 
         <div className="stats">
-          <div className="stat">Gissade: <b>{guessedRanks.size}</b> / {items.length}</div>
+          <div className="stat">Gissade: <b>{guessedRanks.size}</b> / {allRanks.length}</div>
           <div className="stat">
             Tid kvar: <b style={isLowTime ? { color: 'var(--miss)' } : undefined}>{formatTime(secondsLeft)}</b>
           </div>
@@ -491,24 +427,24 @@ export default function PlayPage() {
 
         {finished && (
           <div className="end-banner">
-            {endReason === 'complete' && `Full pott! ${items.length} av ${items.length} på ${formatTime(timeLimitRef.current - secondsLeft)}.`}
-            {endReason === 'timeout' && `Tiden tog slut — du fick ${guessedRanks.size} av ${items.length}.`}
-            {endReason === 'giveup' && `Facit visat — du fick ${guessedRanks.size} av ${items.length} själv.`}
+            {endReason === 'complete' && `Full pott! ${allRanks.length} av ${allRanks.length} på ${formatTime(timeLimitRef.current - secondsLeft)}.`}
+            {endReason === 'timeout' && `Tiden tog slut — du fick ${guessedRanks.size} av ${allRanks.length}.`}
+            {endReason === 'giveup' && `Facit visat — du fick ${guessedRanks.size} av ${allRanks.length} själv.`}
           </div>
         )}
 
         <div className="board-list" style={{ marginTop: 10 }}>
-          {items.map(item => {
-            const isGuessed = guessedRanks.has(item.rank);
-            const isRevealedByEnd = finished && !isGuessed;
+          {allRanks.map(rank => {
+            const isGuessed = guessedRanks.has(rank);
+            const data = revealed[rank];
             return (
-              <div className="row" key={item.rank}>
-                <div className="rank">{item.rank}</div>
-                <div className={`flap ${isGuessed ? 'revealed' : ''} ${isRevealedByEnd ? 'given-up' : ''}`}>
-                  {isGuessed || isRevealedByEnd ? (
+              <div className="row" key={rank}>
+                <div className="rank">{rank}</div>
+                <div className={`flap ${isGuessed ? 'revealed' : ''} ${finished && !isGuessed ? 'given-up' : ''}`}>
+                  {data ? (
                     <>
-                      <span className="name">{item.name}</span>
-                      <span className="value">{formatValue(item, list)}</span>
+                      <span className="name">{data.name}</span>
+                      <span className="value">{formatValue(data, list)}</span>
                     </>
                   ) : (
                     <span className="placeholder">— — — — — —</span>
