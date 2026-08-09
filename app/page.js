@@ -400,6 +400,9 @@ export default function Dashboard() {
           ? <>Vill du skapa eller gå med i en liga? Det gör du under <a href="/profil">Min profil</a>.</>
           : <>Redo att tävla på riktigt? <a href="/signup">Skapa ett konto</a> — tar under en minut.</>
         }
+        <div style={{ marginTop: 8, fontSize: 11.5 }}>
+          <a href="/villkor">Villkor</a>
+        </div>
       </footer>
     </div>
   );

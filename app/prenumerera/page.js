@@ -273,6 +273,11 @@ export default function PrenumereraPage() {
               När betalningen har registrerats aktiveras kontot manuellt inom kort — det här är
               i uppstartsläge inget som sker automatiskt än.
             </p>
+            <p className="subhead" style={{ fontSize: 11, marginTop: 10 }}>
+              Genom att betala godkänner du våra <a href="/villkor" target="_blank" rel="noreferrer">villkor</a>,
+              inklusive att tjänsten aktiveras direkt och att ångerrätten därmed upphör i samband
+              med aktivering.
+            </p>
           </>
         )}
       </div>
