@@ -274,7 +274,8 @@ export default function PrenumereraPage() {
               i uppstartsläge inget som sker automatiskt än.
             </p>
             <p className="subhead" style={{ fontSize: 11, marginTop: 10 }}>
-              Genom att betala godkänner du våra <a href="/villkor" target="_blank" rel="noreferrer">villkor</a>,
+              Genom att betala godkänner du våra <a href="/villkor" target="_blank" rel="noreferrer">villkor</a> och
+              vår <a href="/integritetspolicy" target="_blank" rel="noreferrer">integritetspolicy</a>,
               inklusive att tjänsten aktiveras direkt och att ångerrätten därmed upphör i samband
               med aktivering.
             </p>

@@ -401,7 +401,7 @@ export default function Dashboard() {
           : <>Redo att tävla på riktigt? <a href="/signup">Skapa ett konto</a> — tar under en minut.</>
         }
         <div style={{ marginTop: 8, fontSize: 11.5 }}>
-          <a href="/villkor">Villkor</a>
+          <a href="/villkor">Villkor</a> &middot; <a href="/integritetspolicy">Integritetspolicy</a>
         </div>
       </footer>
     </div>

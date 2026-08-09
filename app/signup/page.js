@@ -81,7 +81,8 @@ export default function SignupPage() {
           {loading ? 'Skapar konto…' : 'Skapa konto'}
         </button>
         <p className="subhead" style={{ fontSize: 11.5, textAlign: 'center', marginTop: 10, marginBottom: 0 }}>
-          Genom att skapa ett konto godkänner du våra <a href="/villkor" target="_blank" rel="noreferrer">villkor</a>.
+          Genom att skapa ett konto godkänner du våra <a href="/villkor" target="_blank" rel="noreferrer">villkor</a> och
+          vår <a href="/integritetspolicy" target="_blank" rel="noreferrer">integritetspolicy</a>.
         </p>
       </form>
 
