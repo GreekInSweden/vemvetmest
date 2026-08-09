@@ -57,9 +57,10 @@ export default function TopplistorPage() {
 
       const uid = sessionData.session.user.id;
 
-      const { data: profile } = await supabase.from('profiles').select('paid_until').eq('id', uid).single();
+      const { data: profile } = await supabase.from('profiles').select('paid_until, is_admin').eq('id', uid).single();
       const todayStr = ymd(stockholmNow());
-      if (!profile?.paid_until || profile.paid_until < todayStr) {
+      const hasPaidAccess = !!profile?.is_admin || (!!profile?.paid_until && profile.paid_until >= todayStr);
+      if (!hasPaidAccess) {
         setNeedsPayment(true);
         setLoading(false);
         return;

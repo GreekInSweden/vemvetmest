@@ -69,9 +69,10 @@ export default function DailyPlayPage() {
       const uid = sessionData.session.user.id;
       setUserId(uid);
 
-      const { data: profile } = await supabase.from('profiles').select('difficulty, paid_until').eq('id', uid).single();
+      const { data: profile } = await supabase.from('profiles').select('difficulty, paid_until, is_admin').eq('id', uid).single();
       const todayForPayment = ymd(stockholmNow());
-      if (!profile?.paid_until || profile.paid_until < todayForPayment) {
+      const hasPaidAccess = !!profile?.is_admin || (!!profile?.paid_until && profile.paid_until >= todayForPayment);
+      if (!hasPaidAccess) {
         setEligibility({ ok: false, reason: 'Dagens utmaning kräver ett betalt medlemskap.', needsPayment: true });
         return;
       }

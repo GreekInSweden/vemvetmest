@@ -132,9 +132,11 @@ export default function Dashboard() {
 
       const todayStr = ymd(stockholmNow());
       const paidUntil = profile?.paid_until || null;
-      const active = !!paidUntil && paidUntil >= todayStr;
+      // Fulla admins (inte semi-admins) ser allt betalt innehåll
+      // automatiskt, utan att behöva ha ett eget aktivt medlemskap.
+      const active = !!profile?.is_admin || (!!paidUntil && paidUntil >= todayStr);
       setIsPaidActive(active);
-      if (active) {
+      if (active && paidUntil) {
         const daysLeft = Math.round((new Date(paidUntil) - new Date(todayStr)) / 86400000);
         if (daysLeft <= 5) setDaysUntilExpiry(daysLeft);
       }
