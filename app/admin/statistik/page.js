@@ -8,6 +8,7 @@ export default function AdminStatistik() {
   const [loading, setLoading] = useState(true);
   const [statsOnlyFeatured, setStatsOnlyFeatured] = useState(true);
   const [distribution, setDistribution] = useState({});
+  const [realTotals, setRealTotals] = useState({}); // listId -> faktiskt antal svar i listan
   const [openDistributionId, setOpenDistributionId] = useState(null);
 
   async function load() {
@@ -24,6 +25,17 @@ export default function AdminStatistik() {
     if (!distribution[listId]) {
       const { data, error } = await supabase.rpc('game_score_distribution', { p_list_id: listId });
       if (!error) setDistribution(prev => ({ ...prev, [listId]: data || [] }));
+    }
+    if (!realTotals[listId]) {
+      // Hämtar det RIKTIGA antalet svar direkt från list_items, istället
+      // för att lita på att ett enskilt gammalt spelresultat råkat spara
+      // rätt totalsumma - annars kan "?" dyka upp om något resultat av
+      // någon anledning fått total=0.
+      const { count } = await supabase
+        .from('list_items')
+        .select('id', { count: 'exact', head: true })
+        .eq('list_id', listId);
+      setRealTotals(prev => ({ ...prev, [listId]: count || 0 }));
     }
   }
 
@@ -89,7 +101,7 @@ export default function AdminStatistik() {
                     (() => {
                       const rows = distribution[g.list_id];
                       const maxCount = Math.max(...rows.map(r => r.player_count));
-                      const totalItems = rows[0]?.total || '?';
+                      const totalItems = realTotals[g.list_id] || rows[0]?.total || '?';
                       return rows.map((r, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                           <span style={{ width: 60, fontSize: 11.5, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>
