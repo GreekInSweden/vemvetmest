@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
+import { timeUntil, formatCountdown } from '../../lib/countdown';
 
 function stockholmNow() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Stockholm' }));
@@ -41,6 +42,14 @@ export default function TopplistorPage() {
   const [challengeLoading, setChallengeLoading] = useState(false);
 
   const [needsPayment, setNeedsPayment] = useState(false);
+  const [launchAt, setLaunchAt] = useState(null);
+  const [remaining, setRemaining] = useState(null);
+
+  useEffect(() => {
+    if (!launchAt) return;
+    const timer = setInterval(() => setRemaining(timeUntil(launchAt)), 1000);
+    return () => clearInterval(timer);
+  }, [launchAt]);
 
   async function loadTotals(scopeValue) {
     const { data, error } = await supabase.rpc('leaderboard_totals', {
@@ -64,6 +73,17 @@ export default function TopplistorPage() {
         setNeedsPayment(true);
         setLoading(false);
         return;
+      }
+
+      // Lanseringsnedräkning: helt separat spärr, oberoende av betalning.
+      if (!profile?.is_admin) {
+        const { data: settingsRow } = await supabase.from('app_settings').select('launch_at').eq('id', 1).single();
+        if (settingsRow?.launch_at && timeUntil(settingsRow.launch_at)) {
+          setLaunchAt(settingsRow.launch_at);
+          setRemaining(timeUntil(settingsRow.launch_at));
+          setLoading(false);
+          return;
+        }
       }
 
       const { data: memberships } = await supabase
@@ -118,6 +138,24 @@ export default function TopplistorPage() {
 
   if (loading) {
     return <div className="wrap"><p className="subhead">Laddar…</p></div>;
+  }
+
+  if (launchAt) {
+    return (
+      <div className="wrap">
+        <div className="topbar"><a className="btn btn-ghost" href="/">&larr; Alla spel</a></div>
+        <div className="upgrade-card">
+          <span className="upgrade-badge">Lanseras snart</span>
+          <div className="upgrade-title">Topplistor öppnar om</div>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 36, color: 'var(--amber-glow)', margin: '10px 0 18px' }}>
+            {remaining ? formatCountdown(remaining) : '00:00'}
+          </div>
+          <p className="subhead">
+            Du är redan medlem — så fort klockan slår noll öppnas Topplistor automatiskt.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (needsPayment) {

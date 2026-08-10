@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabaseClient';
+import { timeUntil, formatCountdown } from '../../../lib/countdown';
 
 function stockholmNow() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Stockholm' }));
@@ -28,6 +29,31 @@ function formatTime(s) {
   const m = String(Math.floor(clamped / 60)).padStart(2, '0');
   const sec = String(clamped % 60).padStart(2, '0');
   return `${m}:${sec}`;
+}
+
+function LaunchCountdownScreen({ launchAt }) {
+  const [remaining, setRemaining] = useState(() => timeUntil(launchAt));
+
+  useEffect(() => {
+    const timer = setInterval(() => setRemaining(timeUntil(launchAt)), 1000);
+    return () => clearInterval(timer);
+  }, [launchAt]);
+
+  return (
+    <div className="wrap">
+      <div className="topbar"><a className="btn btn-ghost" href="/">&larr; Alla spel</a></div>
+      <div className="upgrade-card">
+        <span className="upgrade-badge">Lanseras snart</span>
+        <div className="upgrade-title">Dagens utmaning öppnar om</div>
+        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 36, color: 'var(--amber-glow)', margin: '10px 0 18px' }}>
+          {remaining ? formatCountdown(remaining) : '00:00'}
+        </div>
+        <p className="subhead">
+          Du är redan medlem — så fort klockan slår noll öppnas Dagens utmaning automatiskt, ingen ny åtgärd behövs från dig.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export default function DailyPlayPage() {
@@ -76,6 +102,17 @@ export default function DailyPlayPage() {
         setEligibility({ ok: false, reason: 'Dagens utmaning kräver ett betalt medlemskap.', needsPayment: true });
         return;
       }
+
+      // Lanseringsnedräkning: helt separat spärr, oberoende av betalning.
+      // Admin kommer alltid förbi, precis som barnpaket-spärren.
+      if (!profile?.is_admin) {
+        const { data: settingsRow } = await supabase.from('app_settings').select('launch_at').eq('id', 1).single();
+        if (settingsRow?.launch_at && timeUntil(settingsRow.launch_at)) {
+          setEligibility({ ok: false, reason: '', launchAt: settingsRow.launch_at });
+          return;
+        }
+      }
+
       const diff = profile?.difficulty || 'hard';
       setDifficulty(diff);
       difficultyRef.current = diff;
@@ -353,6 +390,10 @@ export default function DailyPlayPage() {
         </div>
       </div>
     );
+  }
+
+  if (eligibility && !eligibility.ok && eligibility.launchAt) {
+    return <LaunchCountdownScreen launchAt={eligibility.launchAt} />;
   }
 
   if (eligibility && !eligibility.ok && eligibility.needsPayment) {

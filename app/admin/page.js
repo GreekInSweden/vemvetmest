@@ -13,9 +13,20 @@ export default function AdminOverview() {
   const [memberCount, setMemberCount] = useState(0);
   const [poolCount, setPoolCount] = useState(0);
 
+  // ---- Lanseringsnedräkning (helt egen mekanism) ----
+  const [launchAt, setLaunchAt] = useState(null); // ISO-sträng eller null
+  const [launchAtInput, setLaunchAtInput] = useState('');
+  const [launchCountdownMsg, setLaunchCountdownMsg] = useState('');
+
   async function load() {
-    const { data: settings } = await supabase.from('app_settings').select('daily_pool_launched').eq('id', 1).single();
+    const { data: settings } = await supabase.from('app_settings').select('daily_pool_launched, launch_at').eq('id', 1).single();
     setLaunched(!!settings?.daily_pool_launched);
+    setLaunchAt(settings?.launch_at || null);
+    if (settings?.launch_at) {
+      const dt = new Date(settings.launch_at);
+      const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      setLaunchAtInput(local);
+    }
 
     const { count: pendingCount } = await supabase
       .from('leagues').select('id', { count: 'exact', head: true }).eq('status', 'pending');
@@ -33,6 +44,39 @@ export default function AdminOverview() {
 
   useEffect(() => { load(); }, []);
 
+  async function saveLaunchAt() {
+    if (!launchAtInput) {
+      setLaunchCountdownMsg('Välj ett datum och en tid först.');
+      return;
+    }
+    const iso = new Date(launchAtInput).toISOString();
+    const ok = window.confirm(
+      `Sätt lanseringen till ${new Date(iso).toLocaleString('sv-SE')}? Dagens utmaning, Topplistor och de förvalda medlemsspelen hålls låsta för ALLA (även redan betalande) fram tills dess. Betalning fungerar som vanligt hela tiden.`
+    );
+    if (!ok) return;
+    setLaunchCountdownMsg('');
+    const { error } = await supabase.from('app_settings').update({ launch_at: iso }).eq('id', 1);
+    if (error) {
+      setLaunchCountdownMsg('Kunde inte spara: ' + error.message);
+      return;
+    }
+    setLaunchAt(iso);
+    setLaunchCountdownMsg('Sparat! Nedräkningen är aktiv.');
+  }
+
+  async function clearLaunchAt() {
+    const ok = window.confirm('Ta bort lanseringsdatumet helt? Dagens utmaning, Topplistor och medlemsspelen blir då direkt tillgängliga för alla som betalat, utan väntetid.');
+    if (!ok) return;
+    setLaunchCountdownMsg('');
+    const { error } = await supabase.from('app_settings').update({ launch_at: null }).eq('id', 1);
+    if (error) {
+      setLaunchCountdownMsg('Kunde inte ta bort: ' + error.message);
+      return;
+    }
+    setLaunchAt(null);
+    setLaunchAtInput('');
+    setLaunchCountdownMsg('Borttaget — allt är nu direkt tillgängligt för betalande, ingen nedräkning aktiv.');
+  }
   async function toggleLaunch() {
     const next = !launched;
     if (next) {
@@ -58,6 +102,36 @@ export default function AdminOverview() {
 
   return (
     <>
+      {/* ---- Lanseringsnedräkning: helt egen mekanism, engångsgrej ---- */}
+      <div className="panel" style={{ marginBottom: 24, border: `2px solid ${launchAt ? 'var(--amber)' : 'var(--line)'}` }}>
+        <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: 16, textTransform: 'uppercase', color: launchAt ? 'var(--amber-glow)' : 'var(--text)' }}>
+          ⏱ Lanseringsnedräkning
+        </div>
+        <p className="subhead" style={{ margin: '4px 0 12px', fontSize: 12.5 }}>
+          {launchAt
+            ? `Aktiv — Dagens utmaning, Topplistor och de förvalda medlemsspelen är låsta för alla (även betalande) fram till ${new Date(launchAt).toLocaleString('sv-SE')}. Betalning fungerar som vanligt hela tiden.`
+            : 'Ingen nedräkning aktiv — allt är direkt tillgängligt för den som betalat, precis som idag.'}
+        </p>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            type="datetime-local"
+            className="field"
+            style={{ maxWidth: 240 }}
+            value={launchAtInput}
+            onChange={e => setLaunchAtInput(e.target.value)}
+          />
+          <button className="btn btn-primary" style={{ width: 'auto' }} onClick={saveLaunchAt}>
+            {launchAt ? 'Uppdatera datum' : 'Sätt lanseringsdatum'}
+          </button>
+          {launchAt && (
+            <button className="btn btn-ghost" style={{ width: 'auto' }} onClick={clearLaunchAt}>
+              Ta bort nedräkning
+            </button>
+          )}
+        </div>
+        {launchCountdownMsg && <p className="toast" style={{ margin: '8px 0 0' }}>{launchCountdownMsg}</p>}
+      </div>
+
       {/* ---- Global start/stopp för Dagens utmaning ---- */}
       <div
         className="panel"

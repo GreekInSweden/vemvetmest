@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { supabase } from '../../lib/supabaseClient';
+import { timeUntil, formatCountdown } from '../../lib/countdown';
 import {
   buildSwishLink, SWISH_NUMBER, PLAN_PRICES,
   COMPANY_PRICE_PER_SEAT, COMPANY_MIN_SEATS, CHILD_PACKAGE_PRICE
@@ -16,8 +17,16 @@ export default function PrenumereraPage() {
   const [seats, setSeats] = useState(COMPANY_MIN_SEATS);
   const [username, setUsername] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [launchAt, setLaunchAt] = useState(null);
+  const [launchRemaining, setLaunchRemaining] = useState(null);
   const canvasRef = useRef(null);
   const [qrError, setQrError] = useState('');
+
+  useEffect(() => {
+    if (!launchAt) return;
+    const timer = setInterval(() => setLaunchRemaining(timeUntil(launchAt)), 1000);
+    return () => clearInterval(timer);
+  }, [launchAt]);
 
   // ---- Barnkonto-skapande ----
   const [childUsername, setChildUsername] = useState('');
@@ -38,6 +47,14 @@ export default function PrenumereraPage() {
           .eq('id', sessionData.session.user.id)
           .single();
         setUsername(profile?.username || null);
+      }
+      const { data: settingsRow } = await supabase.from('app_settings').select('launch_at').eq('id', 1).single();
+      if (settingsRow?.launch_at) {
+        const remain = timeUntil(settingsRow.launch_at);
+        if (remain) {
+          setLaunchAt(settingsRow.launch_at);
+          setLaunchRemaining(remain);
+        }
       }
       setLoading(false);
     }
@@ -130,6 +147,20 @@ export default function PrenumereraPage() {
           Dagliga utmaningar, egna ligor och topplistor att skryta med.
         </p>
       </header>
+
+      {launchAt && (
+        <div className="panel" style={{ marginBottom: 24, border: '2px solid var(--amber)', textAlign: 'center' }}>
+          <span className="upgrade-badge">Snart här</span>
+          <div className="upgrade-title" style={{ marginTop: 6 }}>Innehållet låses upp om</div>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 32, color: 'var(--amber-glow)', margin: '10px 0' }}>
+            {launchRemaining ? formatCountdown(launchRemaining) : '00:00'}
+          </div>
+          <p className="subhead" style={{ margin: 0 }}>
+            Du kan bli medlem redan nu — Dagens utmaning, Topplistor och medlemsspelen öppnas automatiskt
+            för dig så fort klockan slår noll.
+          </p>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, maxWidth: 560, margin: '0 auto 20px', justifyContent: 'center', flexWrap: 'wrap' }}>
         {Object.entries(TABS).map(([key, val]) => (

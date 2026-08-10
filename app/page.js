@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
+import { timeUntil, formatCountdown } from '../lib/countdown';
 
 function stockholmNow() {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Stockholm' }));
@@ -17,6 +18,15 @@ export default function Dashboard() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [isPaidActive, setIsPaidActive] = useState(false);
+  const [launchAt, setLaunchAt] = useState(null);
+  const [launchRemaining, setLaunchRemaining] = useState(null);
+
+  useEffect(() => {
+    if (!launchAt) return;
+    const timer = setInterval(() => setLaunchRemaining(timeUntil(launchAt)), 1000);
+    return () => clearInterval(timer);
+  }, [launchAt]);
+
   const [daysUntilExpiry, setDaysUntilExpiry] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -141,6 +151,19 @@ export default function Dashboard() {
         if (daysLeft <= 5) setDaysUntilExpiry(daysLeft);
       }
 
+      // Lanseringsnedräkning: medlemsspelen hålls dolda för alla
+      // (även betalande) fram tills klockan slår noll. Admin ser allt.
+      if (!profile?.is_admin) {
+        const { data: settingsRow } = await supabase.from('app_settings').select('launch_at').eq('id', 1).single();
+        if (settingsRow?.launch_at) {
+          const remain = timeUntil(settingsRow.launch_at);
+          if (remain) {
+            setLaunchAt(settingsRow.launch_at);
+            setLaunchRemaining(remain);
+          }
+        }
+      }
+
       const { data: memberships } = await supabase
         .from('league_members')
         .select('leagues(id, name, status, invite_code)')
@@ -226,7 +249,18 @@ export default function Dashboard() {
       )}
 
       {/* ==== BETALANDE MEDLEMMAR: allt medlemskapet ger tillgång till, överst ==== */}
-      {loggedIn && isPaidActive && (
+      {loggedIn && isPaidActive && launchAt && (
+        <div className="panel" style={{ marginBottom: 24, border: '2px solid var(--amber)', textAlign: 'center' }}>
+          <span className="upgrade-badge">Lanseras snart</span>
+          <div className="upgrade-title" style={{ marginTop: 6 }}>Medlemsspel, Dagens utmaning och Topplistor öppnar om</div>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 32, color: 'var(--amber-glow)', margin: '10px 0' }}>
+            {launchRemaining ? formatCountdown(launchRemaining) : '00:00'}
+          </div>
+          <p className="subhead" style={{ margin: 0 }}>Du är redan medlem — allt öppnas automatiskt, ingen ny åtgärd behövs.</p>
+        </div>
+      )}
+
+      {loggedIn && isPaidActive && !launchAt && (
         <>
           {daysUntilExpiry !== null && (
             <div className="panel" style={{ marginBottom: 16, border: '1px solid var(--amber)' }}>
