@@ -138,27 +138,29 @@ export default function GameTierList({ filterTier }) {
       ) : (
         <div className="list-grid">
           {visibleGames.map(g => (
-            <div key={g.id} className="plaque" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ flex: 1 }}>{g.title}</span>
-              <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
-              {TIERS.map(t => (
-                <label key={t.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', gap: 1 }} title={t.title}>
-                  <input
-                    type="checkbox"
-                    checked={!!edits[g.id]?.[t.key]}
-                    onChange={() => toggle(g.id, t.key)}
-                    style={{ width: 15, height: 15, accentColor: t.color }}
-                  />
-                  <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '.03em', color: t.glow }}>{t.label}</span>
-                </label>
-              ))}
-              <button
-                onClick={() => removeGame(g.id, g.title)}
-                style={{ background: 'none', border: 'none', color: 'var(--miss)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '2px 4px' }}
-                title="Ta bort spelet permanent"
-              >
-                ✕
-              </button>
+            <div key={g.id} className="plaque" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+              <span style={{ flex: '1 1 120px', minWidth: 0 }}>{g.title}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
+                {TIERS.map(t => (
+                  <label key={t.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', gap: 1 }} title={t.title}>
+                    <input
+                      type="checkbox"
+                      checked={!!edits[g.id]?.[t.key]}
+                      onChange={() => toggle(g.id, t.key)}
+                      style={{ width: 15, height: 15, accentColor: t.color }}
+                    />
+                    <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: '.03em', color: t.glow }}>{t.label}</span>
+                  </label>
+                ))}
+                <button
+                  onClick={() => removeGame(g.id, g.title)}
+                  style={{ background: 'none', border: 'none', color: 'var(--miss)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '2px 4px' }}
+                  title="Ta bort spelet permanent"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           ))}
         </div>

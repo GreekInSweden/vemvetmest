@@ -316,7 +316,7 @@ export default function AdminBetalningar() {
             </div>
 
             {myPendingPackage ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span className="subhead" style={{ fontSize: 12.5 }}>Väntar på aktivering av barnpaket.</span>
                 <button
                   className="btn btn-ghost"
@@ -367,7 +367,7 @@ export default function AdminBetalningar() {
                   Väntande barnkonton (skapade av {u.username}):
                 </div>
                 {pendingAsParent[u.id].map(c => (
-                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>{c.child_username_requested}</span>
                     <button
                       className="btn btn-ghost"

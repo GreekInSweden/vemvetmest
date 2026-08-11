@@ -149,13 +149,13 @@ export default function AdminStatistik() {
             <p className="subhead">Inga resultat sparade än.</p>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '4px 8px', padding: '4px 0', fontSize: 11, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
                 <span>Spel</span>
-                <span style={{ display: 'flex', gap: 16 }}>
-                  <span style={{ width: 40, textAlign: 'right' }}>Anon</span>
-                  <span style={{ width: 50, textAlign: 'right' }}>Medlem</span>
-                  <span style={{ width: 55, textAlign: 'right' }}>Snitt %</span>
-                  <span style={{ width: 65, textAlign: 'right' }}>Klarade %</span>
+                <span style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ width: 36, textAlign: 'right' }}>Anon</span>
+                  <span style={{ width: 46, textAlign: 'right' }}>Medlem</span>
+                  <span style={{ width: 50, textAlign: 'right' }}>Snitt</span>
+                  <span style={{ width: 58, textAlign: 'right' }}>Klarat</span>
                 </span>
               </div>
               {gameStats
@@ -164,17 +164,17 @@ export default function AdminStatistik() {
                 <div key={g.list_id}>
                   <div
                     onClick={() => toggleDistribution(g.list_id)}
-                    style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13, cursor: 'pointer' }}
+                    style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '4px 8px', padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13, cursor: 'pointer' }}
                   >
-                    <span>
+                    <span style={{ flex: '1 1 140px', minWidth: 0 }}>
                       {openDistributionId === g.list_id ? '▾' : '▸'} {g.title}
                       {!g.featured && <span className="subhead" style={{ fontSize: 10.5, marginLeft: 6 }}>(dolt)</span>}
                     </span>
-                    <span style={{ display: 'flex', gap: 16 }}>
-                      <span style={{ width: 40, textAlign: 'right', color: '#9ab8e6' }}>{g.anon_count}</span>
-                      <span style={{ width: 50, textAlign: 'right', color: 'var(--amber-glow)' }}>{g.member_count}</span>
-                      <span style={{ width: 55, textAlign: 'right' }} className="subhead">{g.avg_percent != null ? `${g.avg_percent}%` : '—'}</span>
-                      <span style={{ width: 65, textAlign: 'right' }} className="subhead">{g.completion_rate != null ? `${g.completion_rate}%` : '—'}</span>
+                    <span style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flexShrink: 0 }}>
+                      <span style={{ width: 36, textAlign: 'right', color: '#9ab8e6' }}>{g.anon_count}</span>
+                      <span style={{ width: 46, textAlign: 'right', color: 'var(--amber-glow)' }}>{g.member_count}</span>
+                      <span style={{ width: 50, textAlign: 'right' }} className="subhead">{g.avg_percent != null ? `${g.avg_percent}%` : '—'}</span>
+                      <span style={{ width: 58, textAlign: 'right' }} className="subhead">{g.completion_rate != null ? `${g.completion_rate}%` : '—'}</span>
                     </span>
                   </div>
 

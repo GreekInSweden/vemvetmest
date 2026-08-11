@@ -164,7 +164,7 @@ export default function AdminOverview() {
       {/* ---- Genvägskort till varje del ---- */}
       <div className="cat-title" style={{ marginTop: 0 }}>Snabböversikt</div>
       <div className="list-grid">
-        <a href="/admin/ligor" className="plaque" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <a href="/admin/ligor" className="plaque" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '2px 8px' }}>
           <span>Ligor</span>
           {pendingLeagues > 0 ? (
             <span style={{ background: 'var(--miss)', color: '#fff', borderRadius: 10, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>
@@ -174,7 +174,7 @@ export default function AdminOverview() {
             <span className="subhead" style={{ fontSize: 12 }}>Inget väntar</span>
           )}
         </a>
-        <a href="/admin/spel" className="plaque" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <a href="/admin/spel" className="plaque" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '2px 8px' }}>
           <span>Spel</span>
           <span className="subhead" style={{ fontSize: 12 }}>
             {featuredCount} syn · {memberCount} med · {poolCount} pool

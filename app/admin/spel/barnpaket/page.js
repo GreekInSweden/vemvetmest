@@ -96,23 +96,25 @@ export default function BarnpaketSpel() {
       ) : (
         <div className="list-grid" style={{ marginBottom: 24 }}>
           {untested.map(g => (
-            <div key={g.id} className="plaque" style={{ display: 'flex', alignItems: 'center', gap: 8, borderColor: '#888' }}>
-              <span style={{ flex: 1 }}>{g.title}</span>
-              <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
-              <button
-                className="btn btn-ghost"
-                style={{ width: 'auto', padding: '3px 10px', fontSize: 11, borderColor: '#7fc98f' }}
-                onClick={() => markTested(g, true)}
-              >
-                ✓ Markera testat
-              </button>
-              <button
-                onClick={() => removeFromPackage(g.id, g.title)}
-                style={{ background: 'none', border: 'none', color: 'var(--miss)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '2px 4px' }}
-                title="Ta bort ur Barnpaketet"
-              >
-                ✕
-              </button>
+            <div key={g.id} className="plaque" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderColor: '#888' }}>
+              <span style={{ flex: '1 1 120px', minWidth: 0 }}>{g.title}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
+                <button
+                  className="btn btn-ghost"
+                  style={{ width: 'auto', padding: '3px 10px', fontSize: 11, borderColor: '#7fc98f' }}
+                  onClick={() => markTested(g, true)}
+                >
+                  ✓ Markera testat
+                </button>
+                <button
+                  onClick={() => removeFromPackage(g.id, g.title)}
+                  style={{ background: 'none', border: 'none', color: 'var(--miss)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '2px 4px' }}
+                  title="Ta bort ur Barnpaketet"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -125,24 +127,26 @@ export default function BarnpaketSpel() {
       ) : (
         <div className="list-grid" style={{ marginBottom: 24 }}>
           {tested.map(g => (
-            <div key={g.id} className="plaque" style={{ display: 'flex', alignItems: 'center', gap: 8, borderColor: '#7fc98f' }}>
-              <span style={{ flex: 1 }}>{g.title}</span>
-              <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
-              <button
-                className="btn btn-ghost"
-                style={{ width: 'auto', padding: '3px 10px', fontSize: 11 }}
-                onClick={() => markTested(g, false)}
-                title="Flytta tillbaka till Ej testade"
-              >
-                Ångra
-              </button>
-              <button
-                onClick={() => removeFromPackage(g.id, g.title)}
-                style={{ background: 'none', border: 'none', color: 'var(--miss)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '2px 4px' }}
-                title="Ta bort ur Barnpaketet"
-              >
-                ✕
-              </button>
+            <div key={g.id} className="plaque" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderColor: '#7fc98f' }}>
+              <span style={{ flex: '1 1 120px', minWidth: 0 }}>{g.title}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
+                <button
+                  className="btn btn-ghost"
+                  style={{ width: 'auto', padding: '3px 10px', fontSize: 11 }}
+                  onClick={() => markTested(g, false)}
+                  title="Flytta tillbaka till Ej testade"
+                >
+                  Ångra
+                </button>
+                <button
+                  onClick={() => removeFromPackage(g.id, g.title)}
+                  style={{ background: 'none', border: 'none', color: 'var(--miss)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: '2px 4px' }}
+                  title="Ta bort ur Barnpaketet"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -167,7 +171,7 @@ export default function BarnpaketSpel() {
               <button
                 key={g.id}
                 className="plaque"
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }}
+                style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left', gap: '2px 8px' }}
                 onClick={() => addToPackage(g)}
               >
                 <span>{g.title}</span>
