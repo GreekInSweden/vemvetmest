@@ -175,7 +175,13 @@ export default function DailyPlayPage() {
           .eq('user_id', uid)
           .eq('used_life', true)
           .gte('created_at', yearStart);
-        livesRemaining = Math.max(0, 5 - (count || 0));
+        const { count: purchasedCount } = await supabase
+          .from('life_purchases')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', uid)
+          .eq('activated', true)
+          .gte('created_at', yearStart);
+        livesRemaining = Math.max(0, 5 + (purchasedCount || 0) - (count || 0));
       }
 
       if (isToday) {

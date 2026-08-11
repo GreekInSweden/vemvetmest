@@ -16,6 +16,7 @@ export default function AdminBetalningar() {
   const [pendingAsParent, setPendingAsParent] = useState({});
   const [pendingAsChild, setPendingAsChild] = useState({});
   const [activePackages, setActivePackages] = useState({}); // { childProfileId: { id, paid_until } }
+  const [pendingLifePurchases, setPendingLifePurchases] = useState({}); // { userId: [{id, created_at}] }
   const [myOwnId, setMyOwnId] = useState(null);
 
   useEffect(() => {
@@ -23,7 +24,19 @@ export default function AdminBetalningar() {
   }, []);
 
   async function loadPendingChildInfo(profileIds, childPackageIds) {
-    if (profileIds.length === 0) { setPendingAsParent({}); setPendingAsChild({}); setActivePackages({}); return; }
+    if (profileIds.length === 0) { setPendingAsParent({}); setPendingAsChild({}); setActivePackages({}); setPendingLifePurchases({}); return; }
+    const { data: lifePending } = await supabase
+      .from('life_purchases')
+      .select('id, user_id, created_at')
+      .eq('activated', false)
+      .in('user_id', profileIds);
+    const byUser = {};
+    (lifePending || []).forEach(p => {
+      if (!byUser[p.user_id]) byUser[p.user_id] = [];
+      byUser[p.user_id].push(p);
+    });
+    setPendingLifePurchases(byUser);
+
     const { data: pending } = await supabase
       .from('child_packages')
       .select('id, parent_id, child_username_requested, child_profile_id, paid_until')
@@ -69,6 +82,22 @@ export default function AdminBetalningar() {
   }
 
   useEffect(() => { loadRecent(); }, []);
+
+  async function activateExtraLife(purchaseId, userId, username) {
+    const ok = window.confirm(`Aktivera ett extra liv (29 kr) för "${username}"?`);
+    if (!ok) return;
+    setPaymentMsg('');
+    const { error } = await supabase
+      .from('life_purchases')
+      .update({ activated: true, activated_at: new Date().toISOString() })
+      .eq('id', purchaseId);
+    if (error) {
+      setPaymentMsg('Kunde inte aktivera: ' + error.message);
+      return;
+    }
+    setPendingLifePurchases(prev => ({ ...prev, [userId]: (prev[userId] || []).filter(p => p.id !== purchaseId) }));
+    setPaymentMsg(`Extra liv aktiverat för "${username}".`);
+  }
 
   async function activateChildPackage(packageId, childProfileId, parentId, childUsername) {
     const ok = window.confirm(`Aktivera barnpaket (99 kr/år) för "${childUsername}"?`);
@@ -375,6 +404,27 @@ export default function AdminBetalningar() {
                       onClick={() => activateChildPackage(c.id, c.child_profile_id, u.id, c.child_username_requested)}
                     >
                       Aktivera barnpaket (99 kr/år)
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {pendingLifePurchases[u.id]?.length > 0 && (
+              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+                <div className="subhead" style={{ fontSize: 11.5, marginBottom: 6, color: '#9ab8e6' }}>
+                  Väntande köp av extra liv:
+                </div>
+                {pendingLifePurchases[u.id].map(p => (
+                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                    <span className="subhead" style={{ fontSize: 12 }}>
+                      Begärt {new Date(p.created_at).toLocaleDateString('sv-SE')}
+                    </span>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ width: 'auto', borderColor: '#9ab8e6', color: '#9ab8e6', padding: '4px 12px', fontSize: 12 }}
+                      onClick={() => activateExtraLife(p.id, u.id, u.username)}
+                    >
+                      Aktivera extra liv (29 kr)
                     </button>
                   </div>
                 ))}

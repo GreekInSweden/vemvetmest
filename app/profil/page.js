@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
+import QRCode from 'qrcode';
+import { buildSwishLink, SWISH_NUMBER, EXTRA_LIFE_PRICE } from '../../lib/swish';
 
 const TABS = [
   { key: 'installningar', label: 'Inställningar' },
@@ -40,6 +42,11 @@ export default function ProfilePage() {
   const [showFamilyJoin, setShowFamilyJoin] = useState(false);
 
   const [hasChildPackage, setHasChildPackage] = useState(false);
+  const [livesRemaining, setLivesRemaining] = useState(null);
+  const [pendingLifePurchase, setPendingLifePurchase] = useState(null);
+  const [showLifeQr, setShowLifeQr] = useState(false);
+  const [lifeQrError, setLifeQrError] = useState('');
+  const lifeCanvasRef = useRef(null);
   const [myChildPaidUntil, setMyChildPaidUntil] = useState(null);
   const [myChildren, setMyChildren] = useState([]);
   const [isParent, setIsParent] = useState(false);
@@ -53,6 +60,41 @@ export default function ProfilePage() {
   const [newMessage, setNewMessage] = useState('');
   const [contactMsg, setContactMsg] = useState('');
   const [sending, setSending] = useState(false);
+
+  async function loadLives(uid) {
+    const yearStart = `${new Date().getFullYear()}-01-01`;
+    const { count: usedCount } = await supabase
+      .from('daily_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', uid)
+      .eq('used_life', true)
+      .gte('created_at', yearStart);
+    const { count: purchasedCount } = await supabase
+      .from('life_purchases')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', uid)
+      .eq('activated', true)
+      .gte('created_at', yearStart);
+    setLivesRemaining(Math.max(0, 5 + (purchasedCount || 0) - (usedCount || 0)));
+
+    const { data: pending } = await supabase
+      .from('life_purchases')
+      .select('id, created_at')
+      .eq('user_id', uid)
+      .eq('activated', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setPendingLifePurchase(pending || null);
+  }
+
+  async function requestExtraLife() {
+    if (!userId) return;
+    const { error } = await supabase.from('life_purchases').insert({ user_id: userId });
+    if (error) return;
+    setShowLifeQr(true);
+    await loadLives(userId);
+  }
 
   async function loadChildPackages(uid) {
     const { data: myProfile } = await supabase.from('profiles').select('child_package_id').eq('id', uid).single();
@@ -131,6 +173,7 @@ export default function ProfilePage() {
       await loadLeagues(uid);
       await loadFamilyPlan(uid);
       await loadChildPackages(uid);
+      await loadLives(uid);
       await loadMessages(uid);
       setLoading(false);
     }
@@ -298,6 +341,20 @@ export default function ProfilePage() {
     setContactMsg('Skickat! Vi svarar här så fort vi kan.');
     await loadMessages(userId);
   }
+
+  const safeUsernameForLife = username ? username.replace(/[^a-zA-Z0-9-]/g, '-') : null;
+  const lifeMessage = safeUsernameForLife ? `KDA-${safeUsernameForLife}-LIV` : null;
+  const lifeSwishLink = lifeMessage
+    ? buildSwishLink({ payeeNumber: SWISH_NUMBER, amount: EXTRA_LIFE_PRICE, message: lifeMessage, editableFields: [] })
+    : null;
+
+  useEffect(() => {
+    if (!showLifeQr || !lifeSwishLink || !lifeCanvasRef.current) return;
+    setLifeQrError('');
+    QRCode.toCanvas(lifeCanvasRef.current, lifeSwishLink, { width: 200, margin: 4, errorCorrectionLevel: 'M' }, (err) => {
+      if (err) setLifeQrError('Kunde inte rita QR-koden: ' + err.message);
+    });
+  }, [showLifeQr, lifeSwishLink]);
 
   if (loading) return <div className="wrap"><p className="subhead">Laddar…</p></div>;
 
@@ -606,6 +663,41 @@ export default function ProfilePage() {
             </>
           )}
           {resetMsg && <div className="toast" style={{ marginTop: 4 }}>{resetMsg}</div>}
+
+          <div className="cat-title" style={{ marginTop: 34 }}>Liv — missade utmaningar</div>
+          <p className="subhead" style={{ marginBottom: 10 }}>
+            Missar du Dagens utmaning en dag kan du spela den i efterhand på fredagen samma vecka,
+            om du har liv kvar. Fem liv ingår varje kalenderår.
+          </p>
+          {livesRemaining !== null && (
+            <p style={{ marginBottom: 14, fontSize: 15 }}>
+              Du har <b style={{ color: livesRemaining > 0 ? 'var(--amber-glow)' : 'var(--miss)' }}>{livesRemaining}</b> liv kvar i år.
+            </p>
+          )}
+
+          {pendingLifePurchase ? (
+            <p className="subhead" style={{ fontSize: 12.5 }}>
+              Ett köp av extra liv väntar på aktivering — hör av dig om det dröjer.
+            </p>
+          ) : !showLifeQr ? (
+            <button className="plaque" onClick={() => setShowLifeQr(true)}>
+              Köp ett extra liv ({EXTRA_LIFE_PRICE} kr)
+            </button>
+          ) : (
+            <div className="panel" style={{ maxWidth: 280 }}>
+              <p className="subhead" style={{ fontSize: 12.5, marginBottom: 10 }}>
+                Skanna med Swish-appen för att köpa ett extra liv. Meddelandet är redan ifyllt.
+              </p>
+              <canvas ref={lifeCanvasRef} width={200} height={200} style={{ display: 'block', margin: '0 auto' }} />
+              {lifeQrError && <p className="error-msg" style={{ fontSize: 12 }}>{lifeQrError}</p>}
+              <p className="subhead" style={{ fontSize: 11, marginTop: 10, marginBottom: 12 }}>
+                Aktiveras manuellt av oss inom kort efter att betalningen registrerats.
+              </p>
+              <button className="btn btn-primary" onClick={requestExtraLife}>
+                Jag har swishat — registrera köpet
+              </button>
+            </div>
+          )}
         </>
       )}
 
