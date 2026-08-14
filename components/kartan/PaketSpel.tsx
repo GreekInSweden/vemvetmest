@@ -40,7 +40,7 @@ export function PaketSpel({ paketId, paketNamn, spelareId, onKlar }: PaketSpelPr
           {totalPoang} / {maxPoang} poäng
         </p>
         <p className={`${styles.resultDetail} ${styles.resultDetailGood}`}>
-          {antalRatt} av {fragor.length} helt rätt
+          {antalRatt} av {fragor.length} träffar
         </p>
         {onKlar && (
           <button className={styles.secondaryButton} onClick={onKlar}>
@@ -126,9 +126,14 @@ export function PaketSpel({ paketId, paketNamn, spelareId, onKlar }: PaketSpelPr
             <p className={styles.resultLabel}>Rätt svar</p>
             <p className={styles.resultValue}>{resultat?.visadVarde}</p>
             {fraga.typ === "punkt" ? (
-              <p className={`${styles.resultDetail} ${styles.resultDetailGood}`}>
-                Din gissning låg {Math.round(resultat?.avstandKm ?? 0)} km från rätt plats
-              </p>
+              <>
+                <p className={`${styles.resultDetail} ${styles.resultDetailGood}`}>
+                  Din gissning låg {Math.round(resultat?.avstandKm ?? 0)} km från rätt plats
+                </p>
+                {resultat?.korrekt && (
+                  <p className={`${styles.resultDetail} ${styles.resultDetailGood}`}>Träff — inom tolerans!</p>
+                )}
+              </>
             ) : (
               <p
                 className={
