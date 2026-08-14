@@ -12,9 +12,12 @@ interface PaketSpelProps {
   paketNamn: string;
   spelareId: string;
   onKlar?: () => void;
+  /** Om paketet är ett temapaket (t.ex. Stockholm och omnejd): ramen
+   * kartan ska starta inzoomad på, istället för hela Sverige. */
+  viewBounds?: { latMin: number; latMax: number; lonMin: number; lonMax: number } | null;
 }
 
-export function PaketSpel({ paketId, paketNamn, spelareId, onKlar }: PaketSpelProps) {
+export function PaketSpel({ paketId, paketNamn, spelareId, onKlar, viewBounds }: PaketSpelProps) {
   const { fragor, loading } = usePaketFragor(paketId);
   const { submitGuess, submitting, error: guessError } = useSubmitKartanGuess(spelareId);
 
@@ -158,6 +161,7 @@ export function PaketSpel({ paketId, paketNamn, spelareId, onKlar }: PaketSpelPr
           geoSource={geoSource}
           clickMode={fraga.typ === "punkt" ? "point" : "region"}
           modeHint={fraga.typ === "punkt" ? "punkt" : "kommun"}
+          viewBounds={fraga.typ === "punkt" ? viewBounds : null}
           guessRegionId={guessId}
           guessPoint={guessPoint}
           correctRegionId={resultat?.rattPlatsId ?? null}

@@ -8,7 +8,7 @@ import styles from "./kartan.module.css";
 const VIEWPORT_W = 400;
 const VIEWPORT_H = 760;
 const MIN_SCALE = 1;
-const MAX_SCALE = 8;
+const MAX_SCALE = 20;
 
 export interface RevealTarget {
   x: number;
@@ -29,6 +29,14 @@ interface KartanSvgMapProps {
   onMapClick?: (lat: number, lon: number, pixel: { x: number; y: number }) => void;
   /** Valfri: tonar kartans kantfärg för att visuellt skilja kommun- och nålgissningsfrågor åt. */
   modeHint?: "kommun" | "punkt";
+  /**
+   * Valfri: ram runt ett geografiskt område (lat/lon-gränser) som kartan
+   * ska starta inzoomad på, istället för hela Sverige. Används av
+   * temapaket (t.ex. "Stockholm och omnejd") så spelaren slipper zooma
+   * in manuellt varje fråga. Slumpade blandpaket skickar inte med detta,
+   * och visar då hela landet som förut.
+   */
+  viewBounds?: { latMin: number; latMax: number; lonMin: number; lonMax: number } | null;
 }
 
 interface PanZoom {
@@ -39,7 +47,7 @@ interface PanZoom {
 
 const IDENTITY: PanZoom = { x: 0, y: 0, scale: 1 };
 
-/** Håller position/scale inom rimliga gränser — kan aldrig "rymma iväg" till extrema tal. */
+/** Klämmer position/scale inom rimliga gränser — kan aldrig "rymma iväg" till extrema tal. */
 function clampPanZoom(pz: PanZoom): PanZoom {
   const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, pz.scale));
   // Tillåt en del överpanorering, men aldrig så mycket att kartan helt lämnar vyn.
@@ -54,6 +62,50 @@ function clampPanZoom(pz: PanZoom): PanZoom {
   };
 }
 
+/**
+ * Räknar ut vilken pan/zoom som ramar in ett givet lat/lon-område så det
+ * fyller merparten av vyn — grunden för att temapaket kan starta
+ * inzoomade på t.ex. Stockholm och omnejd istället för hela Sverige.
+ */
+function computeFramingPanZoom(
+  bounds: { latMin: number; latMax: number; lonMin: number; lonMax: number },
+  projection: ReturnType<typeof buildSwedenProjection>["projection"]
+): PanZoom | null {
+  const corners: [number, number][] = [
+    [bounds.lonMin, bounds.latMin],
+    [bounds.lonMin, bounds.latMax],
+    [bounds.lonMax, bounds.latMin],
+    [bounds.lonMax, bounds.latMax],
+  ];
+  const projected = corners.map((c) => projection(c)).filter(Boolean) as [number, number][];
+  if (projected.length === 0) return null;
+
+  const xs = projected.map((p) => p[0]);
+  const ys = projected.map((p) => p[1]);
+  const x0 = Math.min(...xs);
+  const x1 = Math.max(...xs);
+  const y0 = Math.min(...ys);
+  const y1 = Math.max(...ys);
+
+  const bboxW = Math.max(x1 - x0, 1);
+  const bboxH = Math.max(y1 - y0, 1);
+  const padding = 0.8; // fyll ~80% av vyn, lite luft runt kanterna
+
+  const scale = Math.min(
+    MAX_SCALE,
+    Math.max(MIN_SCALE, Math.min((VIEWPORT_W * padding) / bboxW, (VIEWPORT_H * padding) / bboxH))
+  );
+
+  const centerX = (x0 + x1) / 2;
+  const centerY = (y0 + y1) / 2;
+
+  return clampPanZoom({
+    scale,
+    x: VIEWPORT_W / 2 - centerX * scale,
+    y: VIEWPORT_H / 2 - centerY * scale,
+  });
+}
+
 export function KartanSvgMap({
   geoSource,
   clickMode,
@@ -65,6 +117,7 @@ export function KartanSvgMap({
   onRegionClick,
   onMapClick,
   modeHint,
+  viewBounds,
 }: KartanSvgMapProps) {
   const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -81,14 +134,6 @@ export function KartanSvgMap({
   const [isDragging, setIsDragging] = useState(false);
 
   const prevRevealed = useRef(revealed);
-  useEffect(() => {
-    if (prevRevealed.current && !revealed) {
-      setPanZoom(IDENTITY);
-      activePointers.current.clear();
-      lastPinchDist.current = null;
-    }
-    prevRevealed.current = revealed;
-  }, [revealed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -106,6 +151,34 @@ export function KartanSvgMap({
     if (!geoData) return { projection: null, path: null };
     return buildSwedenProjection(geoData, VIEWPORT_W, VIEWPORT_H);
   }, [geoData]);
+
+  // Startramen: om ett viewBounds (t.ex. Stockholm och omnejd) skickats
+  // med, räkna ut vilken pan/zoom som ramar in det området. Annars
+  // hela Sverige som förut (IDENTITY).
+  const framedStart = useMemo(() => {
+    if (!projection || !viewBounds) return IDENTITY;
+    return computeFramingPanZoom(viewBounds, projection) ?? IDENTITY;
+  }, [projection, viewBounds]);
+
+  // Applicera startramen så fort kartan är redo (första gången
+  // projektionen blir tillgänglig för just den här frågan).
+  useEffect(() => {
+    if (projection) setPanZoom(framedStart);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projection]);
+
+  // Nollställ pan/zoom när en ny fråga börjar (revealed går från
+  // true -> false) — till startramen (Sverige eller det tema-område
+  // som gäller för just det här paketet).
+  useEffect(() => {
+    if (prevRevealed.current && !revealed) {
+      setPanZoom(framedStart);
+      activePointers.current.clear();
+      lastPinchDist.current = null;
+    }
+    prevRevealed.current = revealed;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealed]);
 
   const clientToSvg = useCallback((clientX: number, clientY: number) => {
     if (!svgRef.current) return { x: 0, y: 0 };

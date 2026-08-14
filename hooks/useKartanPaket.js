@@ -13,7 +13,7 @@ export function usePubliceradePaket() {
 
     supabase
       .from('kartan_paket')
-      .select('id, namn')
+      .select('id, namn, vy_lat_min, vy_lat_max, vy_lon_min, vy_lon_max')
       .eq('status', 'publicerad')
       .order('skapad_at', { ascending: false })
       .then(({ data }) => {

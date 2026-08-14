@@ -57,9 +57,41 @@ export async function POST(request) {
     );
   }
 
+  // Temapaket (kategoriIds satt) med nålgissnings-rundor: räkna ut en
+  // ungefärlig ramruta kring de faktiska koordinaterna, så spelaren
+  // ser rätt del av kartan direkt istället för hela Sverige. Slumpade
+  // blandpaket får INGEN ramruta — de ska visa hela landet med flit.
+  let vyBounds = null;
+  if (temaFilter && punktRundor.length > 0) {
+    const { data: punktMedKoordinater } = await supabase
+      .from('kartan_rundor')
+      .select('ratt_lat, ratt_lon')
+      .in('id', punktRundor.map((r) => r.id));
+
+    const lats = (punktMedKoordinater ?? []).map((r) => r.ratt_lat).filter((v) => v != null);
+    const lons = (punktMedKoordinater ?? []).map((r) => r.ratt_lon).filter((v) => v != null);
+
+    if (lats.length > 0) {
+      // Liten marginal runt ytterpunkterna så nålarna inte hamnar
+      // exakt i kanten av vyn.
+      const latPad = Math.max((Math.max(...lats) - Math.min(...lats)) * 0.15, 0.05);
+      const lonPad = Math.max((Math.max(...lons) - Math.min(...lons)) * 0.15, 0.05);
+      vyBounds = {
+        vy_lat_min: Math.min(...lats) - latPad,
+        vy_lat_max: Math.max(...lats) + latPad,
+        vy_lon_min: Math.min(...lons) - lonPad,
+        vy_lon_max: Math.max(...lons) + lonPad,
+      };
+    }
+  }
+
   const { data: nyttPaket, error: paketError } = await supabase
     .from('kartan_paket')
-    .insert({ namn: namn || `Paket ${new Date().toISOString().slice(0, 10)}`, status: 'utkast' })
+    .insert({
+      namn: namn || `Paket ${new Date().toISOString().slice(0, 10)}`,
+      status: 'utkast',
+      ...(vyBounds || {}),
+    })
     .select()
     .single();
 

@@ -128,6 +128,15 @@ export default function KartanPage() {
   }
 
   const aktivtPaket = paket.find((p) => p.id === aktivtPaketId);
+  const aktivtPaketViewBounds =
+    aktivtPaket?.vy_lat_min != null
+      ? {
+          latMin: aktivtPaket.vy_lat_min,
+          latMax: aktivtPaket.vy_lat_max,
+          lonMin: aktivtPaket.vy_lon_min,
+          lonMax: aktivtPaket.vy_lon_max,
+        }
+      : null;
 
   return (
     <div className="wrap">
@@ -145,6 +154,7 @@ export default function KartanPage() {
           <PaketSpel
             paketId={aktivtPaket.id}
             paketNamn={aktivtPaket.namn}
+            viewBounds={aktivtPaketViewBounds}
             spelareId={userId}
             onKlar={() => setAktivtPaketId(null)}
           />
