@@ -192,7 +192,8 @@ export function KartanSvgMap({
 
   const handleWheel = useCallback(
     (e: React.WheelEvent<SVGSVGElement>) => {
-      if (revealed) return;
+      // Zoom/pan tillåts fortfarande efter avslöjande, så man kan
+      // utforska om gissning och facit hamnade långt isär.
       e.preventDefault();
       const { x: svgX, y: svgY } = clientToSvg(e.clientX, e.clientY);
       setPanZoom((pz) => {
@@ -203,12 +204,11 @@ export function KartanSvgMap({
         return clampPanZoom({ scale: newScale, x: svgX - dataX * newScale, y: svgY - dataY * newScale });
       });
     },
-    [revealed, clientToSvg]
+    [clientToSvg]
   );
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<SVGSVGElement>) => {
-      if (revealed) return;
       (e.target as Element).setPointerCapture?.(e.pointerId);
       activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       draggedRef.current = false;
@@ -223,7 +223,7 @@ export function KartanSvgMap({
         lastPinchDist.current = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
       }
     },
-    [revealed]
+    []
   );
 
   const handlePointerMove = useCallback(
@@ -292,13 +292,54 @@ export function KartanSvgMap({
   const guessPixel =
     clickMode === "point" && guessPoint ? proj([guessPoint.lon, guessPoint.lat]) : null;
 
+  // Region-läget (kommun/län) använder fortfarande den enkla CSS-baserade
+  // zoomen mot facit-regionens mittpunkt — det finns bara EN punkt att
+  // visa där (den färgade regionen), inget "både gissning och facit"-problem.
   const revealStyle =
-    revealed && correctPixel
+    clickMode === "region" && revealed && correctPixel
       ? {
           transformOrigin: `${correctPixel[0]}px ${correctPixel[1]}px`,
           transform: "scale(2.2)",
         }
       : { transform: "scale(1)" };
+
+  // Nålgissning: ramar in BÅDE gissningen och facit när svaret visas,
+  // istället för att bara zooma blint mot facit — annars kunde en
+  // gissning långt bort hamna helt utanför vyn, med panorering låst.
+  useEffect(() => {
+    if (clickMode !== "point") return;
+    if (revealed && correctPixel) {
+      const points: [number, number][] = guessPixel ? [guessPixel, correctPixel] : [correctPixel];
+      const xs = points.map((p) => p[0]);
+      const ys = points.map((p) => p[1]);
+      const x0 = Math.min(...xs);
+      const x1 = Math.max(...xs);
+      const y0 = Math.min(...ys);
+      const y1 = Math.max(...ys);
+      const bboxW = Math.max(x1 - x0, 1);
+      const bboxH = Math.max(y1 - y0, 1);
+      const padding = 0.55; // mer luft än startramen, så båda prickarna syns tydligt
+      const scale = Math.min(
+        MAX_SCALE,
+        Math.max(MIN_SCALE, Math.min((VIEWPORT_W * padding) / bboxW, (VIEWPORT_H * padding) / bboxH))
+      );
+      const centerX = (x0 + x1) / 2;
+      const centerY = (y0 + y1) / 2;
+      setPanZoom(
+        clampPanZoom({
+          scale,
+          x: VIEWPORT_W / 2 - centerX * scale,
+          y: VIEWPORT_H / 2 - centerY * scale,
+        })
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revealed, clickMode]);
+
+  // Storleken på markörer/linjer ska vara konstant på SKÄRMEN, inte i
+  // kart-enheter — annars blir de jättestora när man zoomat in långt
+  // (exakt det som hände i stadspaketen: prickarna täckte halva vyn).
+  const markerScale = 1 / panZoom.scale;
 
   function handleSvgClick(e: React.MouseEvent<SVGSVGElement>) {
     if (draggedRef.current) return; // en drag/pinch ska inte räknas som klick
@@ -335,11 +376,16 @@ export function KartanSvgMap({
         onPointerCancel={endPointer}
         onPointerLeave={endPointer}
         style={{
-          cursor: revealed ? "default" : isDragging ? "grabbing" : clickMode === "point" ? "crosshair" : "grab",
+          cursor: isDragging ? "grabbing" : !revealed && clickMode === "point" ? "crosshair" : "grab",
           touchAction: "none",
         }}
       >
-        <g style={{ transform: `translate(${panZoom.x}px, ${panZoom.y}px) scale(${panZoom.scale})` }}>
+        <g
+          style={{
+            transform: `translate(${panZoom.x}px, ${panZoom.y}px) scale(${panZoom.scale})`,
+            transition: revealed ? "transform 900ms cubic-bezier(0.22, 1, 0.36, 1)" : "none",
+          }}
+        >
           <g className={styles.zoomGroup} style={revealStyle}>
             {geoData.features.map((feature) => {
               const id = String((feature.properties as { id: string }).id);
@@ -371,7 +417,13 @@ export function KartanSvgMap({
             })}
 
             {clickMode === "point" && guessPixel && (
-              <circle cx={guessPixel[0]} cy={guessPixel[1]} r={5} className={styles.guessDot} />
+              <circle
+                cx={guessPixel[0]}
+                cy={guessPixel[1]}
+                r={5 * markerScale}
+                strokeWidth={1.5 * markerScale}
+                className={styles.guessDot}
+              />
             )}
 
             {clickMode === "point" && revealed && correctPixel && (
@@ -382,11 +434,24 @@ export function KartanSvgMap({
                     y1={guessPixel[1]}
                     x2={correctPixel[0]}
                     y2={correctPixel[1]}
+                    strokeWidth={0.8 * markerScale}
+                    strokeDasharray={`${3 * markerScale} ${3 * markerScale}`}
                     className={styles.distanceLine}
                   />
                 )}
-                <circle cx={correctPixel[0]} cy={correctPixel[1]} r={4} className={styles.correctDot} />
-                <circle cx={correctPixel[0]} cy={correctPixel[1]} r={4} className={styles.pingRing} />
+                <circle
+                  cx={correctPixel[0]}
+                  cy={correctPixel[1]}
+                  r={4 * markerScale}
+                  className={styles.correctDot}
+                />
+                <circle
+                  cx={correctPixel[0]}
+                  cy={correctPixel[1]}
+                  r={4 * markerScale}
+                  strokeWidth={1.5 * markerScale}
+                  className={styles.pingRing}
+                />
               </>
             )}
           </g>
