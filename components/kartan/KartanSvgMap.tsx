@@ -272,36 +272,23 @@ export function KartanSvgMap({
     }
   }, []);
 
-  if (!geoData || !projection || !path) {
-    return (
-      <div className={styles.mapLoading} style={{ aspectRatio: `${VIEWPORT_W}/${VIEWPORT_H}` }}>
-        Laddar karta…
-      </div>
-    );
-  }
-
-  const proj = projection;
-
+  // OBS: correctPixel/guessPixel måste beräknas HÄR, före det villkorliga
+  // "Laddar karta"-returnet nedan — annars anropas useEffect-hooken direkt
+  // under i olika ordning mellan renderingar (laddar vs. klar), vilket
+  // bryter Reacts hook-regler och kraschar hela komponenten.
   const correctPixel =
-    clickMode === "point" && correctPoint
-      ? proj([correctPoint.lon, correctPoint.lat])
-      : clickMode === "region" && correctRegionId
-      ? centroidOfFeature(geoData, correctRegionId, proj)
+    geoData && projection
+      ? clickMode === "point" && correctPoint
+        ? projection([correctPoint.lon, correctPoint.lat])
+        : clickMode === "region" && correctRegionId
+        ? centroidOfFeature(geoData, correctRegionId, projection)
+        : null
       : null;
 
   const guessPixel =
-    clickMode === "point" && guessPoint ? proj([guessPoint.lon, guessPoint.lat]) : null;
-
-  // Region-läget (kommun/län) använder fortfarande den enkla CSS-baserade
-  // zoomen mot facit-regionens mittpunkt — det finns bara EN punkt att
-  // visa där (den färgade regionen), inget "både gissning och facit"-problem.
-  const revealStyle =
-    clickMode === "region" && revealed && correctPixel
-      ? {
-          transformOrigin: `${correctPixel[0]}px ${correctPixel[1]}px`,
-          transform: "scale(2.2)",
-        }
-      : { transform: "scale(1)" };
+    geoData && projection && clickMode === "point" && guessPoint
+      ? projection([guessPoint.lon, guessPoint.lat])
+      : null;
 
   // Nålgissning: ramar in BÅDE gissningen och facit när svaret visas,
   // istället för att bara zooma blint mot facit — annars kunde en
@@ -335,6 +322,27 @@ export function KartanSvgMap({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [revealed, clickMode]);
+
+  if (!geoData || !projection || !path) {
+    return (
+      <div className={styles.mapLoading} style={{ aspectRatio: `${VIEWPORT_W}/${VIEWPORT_H}` }}>
+        Laddar karta…
+      </div>
+    );
+  }
+
+  const proj = projection;
+
+  // Region-läget (kommun/län) använder fortfarande den enkla CSS-baserade
+  // zoomen mot facit-regionens mittpunkt — det finns bara EN punkt att
+  // visa där (den färgade regionen), inget "både gissning och facit"-problem.
+  const revealStyle =
+    clickMode === "region" && revealed && correctPixel
+      ? {
+          transformOrigin: `${correctPixel[0]}px ${correctPixel[1]}px`,
+          transform: "scale(2.2)",
+        }
+      : { transform: "scale(1)" };
 
   // Storleken på markörer/linjer ska vara konstant på SKÄRMEN, inte i
   // kart-enheter — annars blir de jättestora när man zoomat in långt
