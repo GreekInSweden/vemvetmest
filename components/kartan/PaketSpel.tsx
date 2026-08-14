@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { KartanSvgMap } from "./KartanSvgMap";
+import { KartanLeafletMap } from "./KartanLeafletMap";
 import { usePaketFragor } from "@/hooks/useKartanPaket";
 import { useSubmitKartanGuess } from "@/hooks/useSubmitKartanGuess";
 import type { KartanGuessResultat } from "@/types/kartan";
@@ -157,26 +158,33 @@ export function PaketSpel({ paketId, paketNamn, spelareId, onKlar, viewBounds }:
       </div>
 
       <div className={styles.mapArea}>
-        <KartanSvgMap
-          geoSource={geoSource}
-          clickMode={fraga.typ === "punkt" ? "point" : "region"}
-          modeHint={fraga.typ === "punkt" ? "punkt" : "kommun"}
-          viewBounds={fraga.typ === "punkt" ? viewBounds : null}
-          guessRegionId={guessId}
-          guessPoint={guessPoint}
-          correctRegionId={resultat?.rattPlatsId ?? null}
-          correctPoint={correctPoint}
-          revealed={revealed}
-          onRegionClick={(id, name) => {
-            if (!revealed) {
-              setGuessId(id);
-              setGuessName(name);
-            }
-          }}
-          onMapClick={(lat, lon) => {
-            if (!revealed) setGuessPoint({ lat, lon });
-          }}
-        />
+        {fraga.typ === "punkt" ? (
+          <KartanLeafletMap
+            key={fraga.rundaId}
+            guessPoint={guessPoint}
+            correctPoint={correctPoint}
+            revealed={revealed}
+            viewBounds={viewBounds}
+            onMapClick={(lat, lon) => {
+              if (!revealed) setGuessPoint({ lat, lon });
+            }}
+          />
+        ) : (
+          <KartanSvgMap
+            geoSource={geoSource}
+            clickMode="region"
+            modeHint="kommun"
+            guessRegionId={guessId}
+            correctRegionId={resultat?.rattPlatsId ?? null}
+            revealed={revealed}
+            onRegionClick={(id, name) => {
+              if (!revealed) {
+                setGuessId(id);
+                setGuessName(name);
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );
