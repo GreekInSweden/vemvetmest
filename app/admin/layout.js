@@ -9,6 +9,7 @@ const FULL_LINKS = [
   { href: '/admin/betalningar', label: 'Betalningar' },
   { href: '/admin/ligor', label: 'Ligor' },
   { href: '/admin/spel', label: 'Spel' },
+  { href: '/admin/kartan', label: 'Kartan' },
   { href: '/admin/statistik', label: 'Statistik' },
   { href: '/admin/meddelanden', label: 'Meddelanden' }
 ];

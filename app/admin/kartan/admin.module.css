@@ -1,0 +1,132 @@
+.section {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 20px 22px;
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.input {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+
+.label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.button {
+  padding: 10px 18px;
+  border-radius: 4px;
+  border: none;
+  background: var(--amber);
+  color: #241505;
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.button:disabled {
+  background: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.selectTypeRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.typeButton {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.typeButtonActive {
+  border-color: var(--amber);
+  background: rgba(232, 163, 61, 0.1);
+  color: var(--amber-glow);
+}
+
+.listItem {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.listItem:last-child {
+  border-bottom: none;
+}
+
+.listItemMeta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pickerHint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.pickedValue {
+  font-size: 13px;
+  color: var(--amber-glow);
+  margin-bottom: 10px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.errorNote {
+  color: #e78a6c;
+  font-size: 13px;
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.successNote {
+  color: var(--amber-glow);
+  font-size: 13px;
+  margin-top: 8px;
+}

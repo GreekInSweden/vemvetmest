@@ -1,0 +1,1742 @@
+{
+  "0138": {
+    "name": "Tyresö",
+    "lon": 18.3417,
+    "lat": 59.2123,
+    "lan_code": "01"
+  },
+  "0181": {
+    "name": "Södertälje",
+    "lon": 17.4891,
+    "lat": 59.0834,
+    "lan_code": "01"
+  },
+  "0382": {
+    "name": "Östhammar",
+    "lon": 18.361,
+    "lat": 60.2834,
+    "lan_code": "03"
+  },
+  "0461": {
+    "name": "Gnesta",
+    "lon": 17.1515,
+    "lat": 59.0629,
+    "lan_code": "04"
+  },
+  "0860": {
+    "name": "Hultsfred",
+    "lon": 15.7755,
+    "lat": 57.3918,
+    "lan_code": "08"
+  },
+  "1490": {
+    "name": "Borås",
+    "lon": 12.9804,
+    "lat": 57.7551,
+    "lan_code": "14"
+  },
+  "2081": {
+    "name": "Borlänge",
+    "lon": 15.4051,
+    "lat": 60.4687,
+    "lan_code": "20"
+  },
+  "2421": {
+    "name": "Storuman",
+    "lon": 15.6204,
+    "lat": 65.4402,
+    "lan_code": "24"
+  },
+  "2582": {
+    "name": "Boden",
+    "lon": 21.1793,
+    "lat": 66.0467,
+    "lan_code": "25"
+  },
+  "0184": {
+    "name": "Solna",
+    "lon": 18.0144,
+    "lat": 59.3664,
+    "lan_code": "01"
+  },
+  "1486": {
+    "name": "Strömstad",
+    "lon": 11.2396,
+    "lat": 58.9522,
+    "lan_code": "14"
+  },
+  "1498": {
+    "name": "Tidaholm",
+    "lon": 13.9325,
+    "lat": 58.1339,
+    "lan_code": "14"
+  },
+  "1763": {
+    "name": "Forshaga",
+    "lon": 13.4903,
+    "lat": 59.6376,
+    "lan_code": "17"
+  },
+  "2085": {
+    "name": "Ludvika",
+    "lon": 14.7,
+    "lat": 60.2128,
+    "lan_code": "20"
+  },
+  "2284": {
+    "name": "Örnsköldsvik",
+    "lon": 18.3505,
+    "lat": 63.4749,
+    "lan_code": "22"
+  },
+  "2523": {
+    "name": "Gällivare",
+    "lon": 20.5567,
+    "lat": 67.2125,
+    "lan_code": "25"
+  },
+  "0188": {
+    "name": "Norrtälje",
+    "lon": 18.7653,
+    "lat": 59.8701,
+    "lan_code": "01"
+  },
+  "0191": {
+    "name": "Sigtuna",
+    "lon": 17.8494,
+    "lat": 59.645,
+    "lan_code": "01"
+  },
+  "0192": {
+    "name": "Nynäshamn",
+    "lon": 17.8771,
+    "lat": 58.895,
+    "lan_code": "01"
+  },
+  "1383": {
+    "name": "Varberg",
+    "lon": 12.3741,
+    "lat": 57.1723,
+    "lan_code": "13"
+  },
+  "2309": {
+    "name": "Krokom",
+    "lon": 14.1895,
+    "lat": 63.8104,
+    "lan_code": "23"
+  },
+  "0162": {
+    "name": "Danderyd",
+    "lon": 18.0608,
+    "lat": 59.4059,
+    "lan_code": "01"
+  },
+  "0562": {
+    "name": "Finspång",
+    "lon": 15.7614,
+    "lat": 58.8121,
+    "lan_code": "05"
+  },
+  "0764": {
+    "name": "Alvesta",
+    "lon": 14.441,
+    "lat": 56.8583,
+    "lan_code": "07"
+  },
+  "0765": {
+    "name": "Älmhult",
+    "lon": 14.1143,
+    "lat": 56.5934,
+    "lan_code": "07"
+  },
+  "1080": {
+    "name": "Karlskrona",
+    "lon": 15.7632,
+    "lat": 56.2525,
+    "lan_code": "10"
+  },
+  "1292": {
+    "name": "Ängelholm",
+    "lon": 12.9728,
+    "lat": 56.2467,
+    "lan_code": "12"
+  },
+  "1384": {
+    "name": "Kungsbacka",
+    "lon": 12.1088,
+    "lat": 57.4237,
+    "lan_code": "13"
+  },
+  "1496": {
+    "name": "Skövde",
+    "lon": 13.9291,
+    "lat": 58.4192,
+    "lan_code": "14"
+  },
+  "1760": {
+    "name": "Storfors",
+    "lon": 14.269,
+    "lat": 59.4686,
+    "lan_code": "17"
+  },
+  "2062": {
+    "name": "Mora",
+    "lon": 14.4229,
+    "lat": 61.1372,
+    "lan_code": "20"
+  },
+  "0123": {
+    "name": "Järfälla",
+    "lon": 17.8257,
+    "lat": 59.4388,
+    "lan_code": "01"
+  },
+  "0480": {
+    "name": "Nyköping",
+    "lon": 17.0122,
+    "lat": 58.8059,
+    "lan_code": "04"
+  },
+  "0780": {
+    "name": "Växjö",
+    "lon": 14.9066,
+    "lat": 56.9168,
+    "lan_code": "07"
+  },
+  "0821": {
+    "name": "Högsby",
+    "lon": 15.886,
+    "lat": 57.113,
+    "lan_code": "08"
+  },
+  "1277": {
+    "name": "Åstorp",
+    "lon": 12.972,
+    "lat": 56.131,
+    "lan_code": "12"
+  },
+  "1427": {
+    "name": "Sotenäs",
+    "lon": 11.2849,
+    "lat": 58.4052,
+    "lan_code": "14"
+  },
+  "1461": {
+    "name": "Mellerud",
+    "lon": 12.4034,
+    "lat": 58.693,
+    "lan_code": "14"
+  },
+  "1861": {
+    "name": "Hallsberg",
+    "lon": 15.3269,
+    "lat": 58.9922,
+    "lan_code": "18"
+  },
+  "2260": {
+    "name": "Ånge",
+    "lon": 15.645,
+    "lat": 62.4836,
+    "lan_code": "22"
+  },
+  "2282": {
+    "name": "Kramfors",
+    "lon": 17.9248,
+    "lat": 62.9605,
+    "lan_code": "22"
+  },
+  "2513": {
+    "name": "Överkalix",
+    "lon": 22.6042,
+    "lat": 66.4989,
+    "lan_code": "25"
+  },
+  "2580": {
+    "name": "Luleå",
+    "lon": 22.2651,
+    "lat": 65.7865,
+    "lan_code": "25"
+  },
+  "0760": {
+    "name": "Uppvidinge",
+    "lon": 15.4892,
+    "lat": 57.0333,
+    "lan_code": "07"
+  },
+  "0861": {
+    "name": "Mönsterås",
+    "lon": 16.4777,
+    "lat": 57.0581,
+    "lan_code": "08"
+  },
+  "1231": {
+    "name": "Burlöv",
+    "lon": 13.0776,
+    "lat": 55.6368,
+    "lan_code": "12"
+  },
+  "1257": {
+    "name": "Örkelljunga",
+    "lon": 13.3534,
+    "lat": 56.3162,
+    "lan_code": "12"
+  },
+  "1489": {
+    "name": "Alingsås",
+    "lon": 12.458,
+    "lat": 57.9832,
+    "lan_code": "14"
+  },
+  "1737": {
+    "name": "Torsby",
+    "lon": 12.9989,
+    "lat": 60.536,
+    "lan_code": "17"
+  },
+  "1762": {
+    "name": "Munkfors",
+    "lon": 13.4901,
+    "lat": 59.814,
+    "lan_code": "17"
+  },
+  "1907": {
+    "name": "Surahammar",
+    "lon": 16.1211,
+    "lat": 59.79,
+    "lan_code": "19"
+  },
+  "2281": {
+    "name": "Sundsvall",
+    "lon": 16.8776,
+    "lat": 62.5317,
+    "lan_code": "22"
+  },
+  "2321": {
+    "name": "Åre",
+    "lon": 12.8491,
+    "lat": 63.5161,
+    "lan_code": "23"
+  },
+  "0187": {
+    "name": "Vaxholm",
+    "lon": 18.2756,
+    "lat": 59.4031,
+    "lan_code": "01"
+  },
+  "0509": {
+    "name": "Ödeshög",
+    "lon": 14.7046,
+    "lat": 58.2171,
+    "lan_code": "05"
+  },
+  "0561": {
+    "name": "Åtvidaberg",
+    "lon": 16.1378,
+    "lat": 58.2185,
+    "lan_code": "05"
+  },
+  "0662": {
+    "name": "Gislaved",
+    "lon": 13.4889,
+    "lat": 57.2982,
+    "lan_code": "06"
+  },
+  "1402": {
+    "name": "Partille",
+    "lon": 12.1341,
+    "lat": 57.7318,
+    "lan_code": "14"
+  },
+  "2305": {
+    "name": "Bräcke",
+    "lon": 15.63,
+    "lat": 62.8577,
+    "lan_code": "23"
+  },
+  "2418": {
+    "name": "Malå",
+    "lon": 18.7149,
+    "lat": 65.2563,
+    "lan_code": "24"
+  },
+  "2521": {
+    "name": "Pajala",
+    "lon": 22.8769,
+    "lat": 67.3971,
+    "lan_code": "25"
+  },
+  "0128": {
+    "name": "Salem",
+    "lon": 17.7219,
+    "lat": 59.2364,
+    "lan_code": "01"
+  },
+  "1264": {
+    "name": "Skurup",
+    "lon": 13.5512,
+    "lat": 55.4809,
+    "lan_code": "12"
+  },
+  "1286": {
+    "name": "Ystad",
+    "lon": 13.8117,
+    "lat": 55.4734,
+    "lan_code": "12"
+  },
+  "1290": {
+    "name": "Kristianstad",
+    "lon": 14.1741,
+    "lat": 56.0283,
+    "lan_code": "12"
+  },
+  "1315": {
+    "name": "Hylte",
+    "lon": 13.2636,
+    "lat": 56.9678,
+    "lan_code": "13"
+  },
+  "1441": {
+    "name": "Lerum",
+    "lon": 12.3083,
+    "lat": 57.8421,
+    "lan_code": "14"
+  },
+  "1465": {
+    "name": "Svenljunga",
+    "lon": 13.057,
+    "lat": 57.4134,
+    "lan_code": "14"
+  },
+  "1484": {
+    "name": "Lysekil",
+    "lon": 11.4591,
+    "lat": 58.3374,
+    "lan_code": "14"
+  },
+  "1495": {
+    "name": "Skara",
+    "lon": 13.4556,
+    "lat": 58.3824,
+    "lan_code": "14"
+  },
+  "1862": {
+    "name": "Degerfors",
+    "lon": 14.4305,
+    "lat": 59.1596,
+    "lan_code": "18"
+  },
+  "2026": {
+    "name": "Gagnef",
+    "lon": 14.8674,
+    "lat": 60.4569,
+    "lan_code": "20"
+  },
+  "2031": {
+    "name": "Rättvik",
+    "lon": 15.3394,
+    "lat": 61.2021,
+    "lan_code": "20"
+  },
+  "2262": {
+    "name": "Timrå",
+    "lon": 17.3684,
+    "lat": 62.6179,
+    "lan_code": "22"
+  },
+  "2425": {
+    "name": "Dorotea",
+    "lon": 16.065,
+    "lat": 64.4686,
+    "lan_code": "24"
+  },
+  "2460": {
+    "name": "Vännäs",
+    "lon": 19.6975,
+    "lat": 63.94,
+    "lan_code": "24"
+  },
+  "0136": {
+    "name": "Haninge",
+    "lon": 18.3462,
+    "lat": 59.0111,
+    "lan_code": "01"
+  },
+  "1446": {
+    "name": "Karlsborg",
+    "lon": 14.4654,
+    "lat": 58.5962,
+    "lan_code": "14"
+  },
+  "1761": {
+    "name": "Hammarö",
+    "lon": 13.5557,
+    "lat": 59.3059,
+    "lan_code": "17"
+  },
+  "1781": {
+    "name": "Kristinehamn",
+    "lon": 14.1126,
+    "lat": 59.2485,
+    "lan_code": "17"
+  },
+  "1782": {
+    "name": "Filipstad",
+    "lon": 14.1609,
+    "lat": 59.905,
+    "lan_code": "17"
+  },
+  "1785": {
+    "name": "Säffle",
+    "lon": 12.9907,
+    "lat": 59.1074,
+    "lan_code": "17"
+  },
+  "1961": {
+    "name": "Hallstahammar",
+    "lon": 16.2359,
+    "lat": 59.5646,
+    "lan_code": "19"
+  },
+  "2039": {
+    "name": "Älvdalen",
+    "lon": 12.9047,
+    "lat": 61.6499,
+    "lan_code": "20"
+  },
+  "2082": {
+    "name": "Säter",
+    "lon": 15.7397,
+    "lat": 60.4158,
+    "lan_code": "20"
+  },
+  "2182": {
+    "name": "Söderhamn",
+    "lon": 17.0066,
+    "lat": 61.2977,
+    "lan_code": "21"
+  },
+  "0643": {
+    "name": "Habo",
+    "lon": 14.0358,
+    "lat": 57.9874,
+    "lan_code": "06"
+  },
+  "0665": {
+    "name": "Vaggeryd",
+    "lon": 14.167,
+    "lat": 57.4704,
+    "lan_code": "06"
+  },
+  "1419": {
+    "name": "Tjörn",
+    "lon": 11.5992,
+    "lat": 57.983,
+    "lan_code": "14"
+  },
+  "2021": {
+    "name": "Vansbro",
+    "lon": 14.2602,
+    "lat": 60.464,
+    "lan_code": "20"
+  },
+  "2121": {
+    "name": "Ovanåker",
+    "lon": 15.8193,
+    "lat": 61.3069,
+    "lan_code": "21"
+  },
+  "0163": {
+    "name": "Sollentuna",
+    "lon": 17.9415,
+    "lat": 59.4447,
+    "lan_code": "01"
+  },
+  "0483": {
+    "name": "Katrineholm",
+    "lon": 16.3216,
+    "lat": 59.0097,
+    "lan_code": "04"
+  },
+  "0584": {
+    "name": "Vadstena",
+    "lon": 14.8687,
+    "lat": 58.4275,
+    "lan_code": "05"
+  },
+  "0880": {
+    "name": "Kalmar",
+    "lon": 16.2203,
+    "lat": 56.7025,
+    "lan_code": "08"
+  },
+  "1214": {
+    "name": "Svalöv",
+    "lon": 13.1253,
+    "lat": 55.9583,
+    "lan_code": "12"
+  },
+  "1263": {
+    "name": "Svedala",
+    "lon": 13.2563,
+    "lat": 55.5486,
+    "lan_code": "12"
+  },
+  "1265": {
+    "name": "Sjöbo",
+    "lon": 13.791,
+    "lat": 55.6429,
+    "lan_code": "12"
+  },
+  "1470": {
+    "name": "Vara",
+    "lon": 13.0924,
+    "lat": 58.2441,
+    "lan_code": "14"
+  },
+  "1473": {
+    "name": "Töreboda",
+    "lon": 14.1265,
+    "lat": 58.6632,
+    "lan_code": "14"
+  },
+  "1481": {
+    "name": "Mölndal",
+    "lon": 12.1143,
+    "lat": 57.6163,
+    "lan_code": "14"
+  },
+  "1784": {
+    "name": "Arvika",
+    "lon": 12.6458,
+    "lat": 59.7673,
+    "lan_code": "17"
+  },
+  "2422": {
+    "name": "Sorsele",
+    "lon": 16.8273,
+    "lat": 65.6866,
+    "lan_code": "24"
+  },
+  "0114": {
+    "name": "Upplands Väsby",
+    "lon": 17.9137,
+    "lat": 59.5155,
+    "lan_code": "01"
+  },
+  "0488": {
+    "name": "Trosa",
+    "lon": 17.5121,
+    "lat": 58.8355,
+    "lan_code": "04"
+  },
+  "0617": {
+    "name": "Gnosjö",
+    "lon": 13.7833,
+    "lat": 57.3608,
+    "lan_code": "06"
+  },
+  "0980": {
+    "name": "Gotland",
+    "lon": 18.459,
+    "lat": 57.4522,
+    "lan_code": "09"
+  },
+  "1293": {
+    "name": "Hässleholm",
+    "lon": 13.7233,
+    "lat": 56.184,
+    "lan_code": "12"
+  },
+  "1472": {
+    "name": "Tibro",
+    "lon": 14.2355,
+    "lat": 58.4608,
+    "lan_code": "14"
+  },
+  "1491": {
+    "name": "Ulricehamn",
+    "lon": 13.4461,
+    "lat": 57.8091,
+    "lan_code": "14"
+  },
+  "1493": {
+    "name": "Mariestad",
+    "lon": 13.8391,
+    "lat": 58.7273,
+    "lan_code": "14"
+  },
+  "2104": {
+    "name": "Hofors",
+    "lon": 16.4458,
+    "lat": 60.4893,
+    "lan_code": "21"
+  },
+  "2184": {
+    "name": "Hudiksvall",
+    "lon": 16.8683,
+    "lat": 61.8101,
+    "lan_code": "21"
+  },
+  "2283": {
+    "name": "Sollefteå",
+    "lon": 16.7567,
+    "lat": 63.4374,
+    "lan_code": "22"
+  },
+  "2481": {
+    "name": "Lycksele",
+    "lon": 18.4125,
+    "lat": 64.6465,
+    "lan_code": "24"
+  },
+  "0186": {
+    "name": "Lidingö",
+    "lon": 18.1912,
+    "lat": 59.3644,
+    "lan_code": "01"
+  },
+  "0684": {
+    "name": "Sävsjö",
+    "lon": 14.6031,
+    "lat": 57.3153,
+    "lan_code": "06"
+  },
+  "1466": {
+    "name": "Herrljunga",
+    "lon": 13.1569,
+    "lat": 58.011,
+    "lan_code": "14"
+  },
+  "1482": {
+    "name": "Kungälv",
+    "lon": 11.7618,
+    "lat": 57.8839,
+    "lan_code": "14"
+  },
+  "1880": {
+    "name": "Örebro",
+    "lon": 15.3249,
+    "lat": 59.2363,
+    "lan_code": "18"
+  },
+  "2510": {
+    "name": "Jokkmokk",
+    "lon": 18.6413,
+    "lat": 66.9151,
+    "lan_code": "25"
+  },
+  "2518": {
+    "name": "Övertorneå",
+    "lon": 23.424,
+    "lat": 66.5048,
+    "lan_code": "25"
+  },
+  "0686": {
+    "name": "Eksjö",
+    "lon": 15.2102,
+    "lat": 57.6279,
+    "lan_code": "06"
+  },
+  "1276": {
+    "name": "Klippan",
+    "lon": 13.2383,
+    "lat": 56.1114,
+    "lan_code": "12"
+  },
+  "1278": {
+    "name": "Båstad",
+    "lon": 12.7718,
+    "lat": 56.4123,
+    "lan_code": "12"
+  },
+  "1284": {
+    "name": "Höganäs",
+    "lon": 12.6395,
+    "lat": 56.2111,
+    "lan_code": "12"
+  },
+  "1415": {
+    "name": "Stenungsund",
+    "lon": 11.9163,
+    "lat": 58.0537,
+    "lan_code": "14"
+  },
+  "1463": {
+    "name": "Mark",
+    "lon": 12.5921,
+    "lat": 57.4556,
+    "lan_code": "14"
+  },
+  "2132": {
+    "name": "Nordanstig",
+    "lon": 17.2023,
+    "lat": 62.0341,
+    "lan_code": "21"
+  },
+  "0513": {
+    "name": "Kinda",
+    "lon": 15.7101,
+    "lat": 57.9923,
+    "lan_code": "05"
+  },
+  "0642": {
+    "name": "Mullsjö",
+    "lon": 13.8165,
+    "lat": 57.9502,
+    "lan_code": "06"
+  },
+  "0884": {
+    "name": "Vimmerby",
+    "lon": 15.79,
+    "lat": 57.6789,
+    "lan_code": "08"
+  },
+  "1407": {
+    "name": "Öckerö",
+    "lon": 11.6441,
+    "lat": 57.7464,
+    "lan_code": "14"
+  },
+  "1440": {
+    "name": "Ale",
+    "lon": 12.2039,
+    "lat": 57.9536,
+    "lan_code": "14"
+  },
+  "1881": {
+    "name": "Kumla",
+    "lon": 15.1233,
+    "lat": 59.1202,
+    "lan_code": "18"
+  },
+  "2034": {
+    "name": "Orsa",
+    "lon": 14.7194,
+    "lat": 61.3362,
+    "lan_code": "20"
+  },
+  "2061": {
+    "name": "Smedjebacken",
+    "lon": 15.4481,
+    "lat": 60.0756,
+    "lan_code": "20"
+  },
+  "2080": {
+    "name": "Falun",
+    "lon": 15.8661,
+    "lat": 60.7694,
+    "lan_code": "20"
+  },
+  "2084": {
+    "name": "Avesta",
+    "lon": 16.3751,
+    "lat": 60.2197,
+    "lan_code": "20"
+  },
+  "2161": {
+    "name": "Ljusdal",
+    "lon": 15.6846,
+    "lat": 61.9175,
+    "lan_code": "21"
+  },
+  "2463": {
+    "name": "Åsele",
+    "lon": 17.6496,
+    "lat": 64.1815,
+    "lan_code": "24"
+  },
+  "0360": {
+    "name": "Tierp",
+    "lon": 17.5877,
+    "lat": 60.3732,
+    "lan_code": "03"
+  },
+  "0381": {
+    "name": "Enköping",
+    "lon": 17.1342,
+    "lat": 59.6452,
+    "lan_code": "03"
+  },
+  "0512": {
+    "name": "Ydre",
+    "lon": 15.254,
+    "lat": 57.8681,
+    "lan_code": "05"
+  },
+  "0563": {
+    "name": "Valdemarsvik",
+    "lon": 16.7517,
+    "lat": 58.1911,
+    "lan_code": "05"
+  },
+  "0781": {
+    "name": "Ljungby",
+    "lon": 13.8016,
+    "lat": 56.8306,
+    "lan_code": "07"
+  },
+  "1272": {
+    "name": "Bromölla",
+    "lon": 14.5254,
+    "lat": 56.1267,
+    "lan_code": "12"
+  },
+  "1280": {
+    "name": "Malmö",
+    "lon": 13.0202,
+    "lat": 55.5729,
+    "lan_code": "12"
+  },
+  "1285": {
+    "name": "Eslöv",
+    "lon": 13.2948,
+    "lat": 55.8513,
+    "lan_code": "12"
+  },
+  "1380": {
+    "name": "Halmstad",
+    "lon": 12.9663,
+    "lat": 56.7485,
+    "lan_code": "13"
+  },
+  "1480": {
+    "name": "Göteborg",
+    "lon": 11.888,
+    "lat": 57.6924,
+    "lan_code": "14"
+  },
+  "1882": {
+    "name": "Askersund",
+    "lon": 14.9374,
+    "lat": 58.8402,
+    "lan_code": "18"
+  },
+  "2181": {
+    "name": "Sandviken",
+    "lon": 16.7699,
+    "lat": 60.481,
+    "lan_code": "21"
+  },
+  "2505": {
+    "name": "Arvidsjaur",
+    "lon": 19.2216,
+    "lat": 65.6438,
+    "lan_code": "25"
+  },
+  "2506": {
+    "name": "Arjeplog",
+    "lon": 17.107,
+    "lat": 66.3688,
+    "lan_code": "25"
+  },
+  "2514": {
+    "name": "Kalix",
+    "lon": 23.0359,
+    "lat": 65.9205,
+    "lan_code": "25"
+  },
+  "0481": {
+    "name": "Oxelösund",
+    "lon": 17.1231,
+    "lat": 58.6691,
+    "lan_code": "04"
+  },
+  "0680": {
+    "name": "Jönköping",
+    "lon": 14.4414,
+    "lat": 57.8257,
+    "lan_code": "06"
+  },
+  "0761": {
+    "name": "Lessebo",
+    "lon": 15.2231,
+    "lat": 56.7503,
+    "lan_code": "07"
+  },
+  "0840": {
+    "name": "Mörbylånga",
+    "lon": 16.4909,
+    "lat": 56.4274,
+    "lan_code": "08"
+  },
+  "0881": {
+    "name": "Nybro",
+    "lon": 15.8472,
+    "lat": 56.837,
+    "lan_code": "08"
+  },
+  "1275": {
+    "name": "Perstorp",
+    "lon": 13.3619,
+    "lat": 56.1878,
+    "lan_code": "12"
+  },
+  "1471": {
+    "name": "Götene",
+    "lon": 13.4657,
+    "lat": 58.5861,
+    "lan_code": "14"
+  },
+  "1960": {
+    "name": "Kungsör",
+    "lon": 16.0871,
+    "lat": 59.4173,
+    "lan_code": "19"
+  },
+  "2023": {
+    "name": "Malung-Sälen",
+    "lon": 13.4678,
+    "lat": 60.8522,
+    "lan_code": "20"
+  },
+  "2584": {
+    "name": "Kiruna",
+    "lon": 20.6479,
+    "lat": 68.2165,
+    "lan_code": "25"
+  },
+  "0126": {
+    "name": "Huddinge",
+    "lon": 18.0556,
+    "lat": 59.2167,
+    "lan_code": "01"
+  },
+  "0380": {
+    "name": "Uppsala",
+    "lon": 17.7672,
+    "lat": 59.955,
+    "lan_code": "03"
+  },
+  "0580": {
+    "name": "Linköping",
+    "lon": 15.6671,
+    "lat": 58.3587,
+    "lan_code": "05"
+  },
+  "0767": {
+    "name": "Markaryd",
+    "lon": 13.6339,
+    "lat": 56.5363,
+    "lan_code": "07"
+  },
+  "1081": {
+    "name": "Ronneby",
+    "lon": 15.2052,
+    "lat": 56.3023,
+    "lan_code": "10"
+  },
+  "1230": {
+    "name": "Staffanstorp",
+    "lon": 13.2162,
+    "lat": 55.6475,
+    "lan_code": "12"
+  },
+  "1256": {
+    "name": "Östra Göinge",
+    "lon": 14.1617,
+    "lat": 56.2777,
+    "lan_code": "12"
+  },
+  "1287": {
+    "name": "Trelleborg",
+    "lon": 13.2531,
+    "lat": 55.4171,
+    "lan_code": "12"
+  },
+  "1460": {
+    "name": "Bengtsfors",
+    "lon": 12.2628,
+    "lat": 59.0041,
+    "lan_code": "14"
+  },
+  "1764": {
+    "name": "Grums",
+    "lon": 13.0374,
+    "lat": 59.3984,
+    "lan_code": "17"
+  },
+  "2361": {
+    "name": "Härjedalen",
+    "lon": 14.1453,
+    "lat": 62.1641,
+    "lan_code": "23"
+  },
+  "2462": {
+    "name": "Vilhelmina",
+    "lon": 16.1567,
+    "lat": 64.8966,
+    "lan_code": "24"
+  },
+  "0139": {
+    "name": "Upplands-Bro",
+    "lon": 17.6751,
+    "lat": 59.5392,
+    "lan_code": "01"
+  },
+  "0687": {
+    "name": "Tranås",
+    "lon": 14.8295,
+    "lat": 58.0375,
+    "lan_code": "06"
+  },
+  "0763": {
+    "name": "Tingsryd",
+    "lon": 14.9957,
+    "lat": 56.5492,
+    "lan_code": "07"
+  },
+  "1083": {
+    "name": "Sölvesborg",
+    "lon": 14.6533,
+    "lat": 56.0942,
+    "lan_code": "10"
+  },
+  "1261": {
+    "name": "Kävlinge",
+    "lon": 13.0223,
+    "lat": 55.7757,
+    "lan_code": "12"
+  },
+  "1266": {
+    "name": "Hörby",
+    "lon": 13.7271,
+    "lat": 55.8454,
+    "lan_code": "12"
+  },
+  "1430": {
+    "name": "Munkedal",
+    "lon": 11.6863,
+    "lat": 58.6117,
+    "lan_code": "14"
+  },
+  "1439": {
+    "name": "Färgelanda",
+    "lon": 12.0024,
+    "lat": 58.6129,
+    "lan_code": "14"
+  },
+  "1443": {
+    "name": "Bollebygd",
+    "lon": 12.5837,
+    "lat": 57.7499,
+    "lan_code": "14"
+  },
+  "1485": {
+    "name": "Uddevalla",
+    "lon": 11.9345,
+    "lat": 58.3015,
+    "lan_code": "14"
+  },
+  "1904": {
+    "name": "Skinnskatteberg",
+    "lon": 15.7505,
+    "lat": 59.7791,
+    "lan_code": "19"
+  },
+  "2417": {
+    "name": "Norsjö",
+    "lon": 19.4975,
+    "lat": 64.9333,
+    "lan_code": "24"
+  },
+  "0862": {
+    "name": "Emmaboda",
+    "lon": 15.5485,
+    "lat": 56.6392,
+    "lan_code": "08"
+  },
+  "1281": {
+    "name": "Lund",
+    "lon": 13.4554,
+    "lat": 55.65,
+    "lan_code": "12"
+  },
+  "1462": {
+    "name": "Lilla Edet",
+    "lon": 12.08,
+    "lat": 58.1595,
+    "lan_code": "14"
+  },
+  "1492": {
+    "name": "Åmål",
+    "lon": 12.5751,
+    "lat": 58.9643,
+    "lan_code": "14"
+  },
+  "1863": {
+    "name": "Hällefors",
+    "lon": 14.6569,
+    "lat": 59.7511,
+    "lan_code": "18"
+  },
+  "2083": {
+    "name": "Hedemora",
+    "lon": 16.1629,
+    "lat": 60.3851,
+    "lan_code": "20"
+  },
+  "2183": {
+    "name": "Bollnäs",
+    "lon": 16.4121,
+    "lat": 61.3212,
+    "lan_code": "21"
+  },
+  "2482": {
+    "name": "Skellefteå",
+    "lon": 20.7147,
+    "lat": 64.8158,
+    "lan_code": "24"
+  },
+  "0125": {
+    "name": "Ekerö",
+    "lon": 17.6367,
+    "lat": 59.3488,
+    "lan_code": "01"
+  },
+  "0330": {
+    "name": "Knivsta",
+    "lon": 17.8152,
+    "lat": 59.745,
+    "lan_code": "03"
+  },
+  "0685": {
+    "name": "Vetlanda",
+    "lon": 15.1661,
+    "lat": 57.3627,
+    "lan_code": "06"
+  },
+  "0160": {
+    "name": "Täby",
+    "lon": 18.0727,
+    "lat": 59.4626,
+    "lan_code": "01"
+  },
+  "0486": {
+    "name": "Strängnäs",
+    "lon": 17.086,
+    "lat": 59.3356,
+    "lan_code": "04"
+  },
+  "0582": {
+    "name": "Söderköping",
+    "lon": 16.6936,
+    "lat": 58.3903,
+    "lan_code": "05"
+  },
+  "0682": {
+    "name": "Nässjö",
+    "lon": 14.5856,
+    "lat": 57.6097,
+    "lan_code": "06"
+  },
+  "0834": {
+    "name": "Torsås",
+    "lon": 15.9396,
+    "lat": 56.4117,
+    "lan_code": "08"
+  },
+  "0883": {
+    "name": "Västervik",
+    "lon": 16.5,
+    "lat": 57.8244,
+    "lan_code": "08"
+  },
+  "1233": {
+    "name": "Vellinge",
+    "lon": 12.9969,
+    "lat": 55.4394,
+    "lan_code": "12"
+  },
+  "1262": {
+    "name": "Lomma",
+    "lon": 13.0722,
+    "lat": 55.6981,
+    "lan_code": "12"
+  },
+  "1273": {
+    "name": "Osby",
+    "lon": 13.9398,
+    "lat": 56.4132,
+    "lan_code": "12"
+  },
+  "1435": {
+    "name": "Tanum",
+    "lon": 11.4043,
+    "lat": 58.6877,
+    "lan_code": "14"
+  },
+  "1497": {
+    "name": "Hjo",
+    "lon": 14.1682,
+    "lat": 58.2731,
+    "lan_code": "14"
+  },
+  "1864": {
+    "name": "Ljusnarsberg",
+    "lon": 14.9888,
+    "lat": 59.949,
+    "lan_code": "18"
+  },
+  "1883": {
+    "name": "Karlskoga",
+    "lon": 14.5516,
+    "lat": 59.3923,
+    "lan_code": "18"
+  },
+  "1980": {
+    "name": "Västerås",
+    "lon": 16.5779,
+    "lat": 59.6496,
+    "lan_code": "19"
+  },
+  "1983": {
+    "name": "Köping",
+    "lon": 15.8749,
+    "lat": 59.5877,
+    "lan_code": "19"
+  },
+  "0115": {
+    "name": "Vallentuna",
+    "lon": 18.2212,
+    "lat": 59.5828,
+    "lan_code": "01"
+  },
+  "0117": {
+    "name": "Österåker",
+    "lon": 18.5969,
+    "lat": 59.5006,
+    "lan_code": "01"
+  },
+  "0127": {
+    "name": "Botkyrka",
+    "lon": 17.8482,
+    "lat": 59.1518,
+    "lan_code": "01"
+  },
+  "0683": {
+    "name": "Värnamo",
+    "lon": 14.0467,
+    "lat": 57.1304,
+    "lan_code": "06"
+  },
+  "0882": {
+    "name": "Oskarshamn",
+    "lon": 16.3547,
+    "lat": 57.3673,
+    "lan_code": "08"
+  },
+  "1283": {
+    "name": "Helsingborg",
+    "lon": 12.7738,
+    "lat": 56.0756,
+    "lan_code": "12"
+  },
+  "1452": {
+    "name": "Tranemo",
+    "lon": 13.4245,
+    "lat": 57.4915,
+    "lan_code": "14"
+  },
+  "1494": {
+    "name": "Lidköping",
+    "lon": 13.014,
+    "lat": 58.5335,
+    "lan_code": "14"
+  },
+  "1715": {
+    "name": "Kil",
+    "lon": 13.1816,
+    "lat": 59.5643,
+    "lan_code": "17"
+  },
+  "2326": {
+    "name": "Berg",
+    "lon": 14.2829,
+    "lat": 62.6874,
+    "lan_code": "23"
+  },
+  "0140": {
+    "name": "Nykvarn",
+    "lon": 17.4062,
+    "lat": 59.1939,
+    "lan_code": "01"
+  },
+  "0319": {
+    "name": "Älvkarleby",
+    "lon": 17.4208,
+    "lat": 60.5577,
+    "lan_code": "03"
+  },
+  "0428": {
+    "name": "Vingåker",
+    "lon": 15.8932,
+    "lat": 59.0661,
+    "lan_code": "04"
+  },
+  "1082": {
+    "name": "Karlshamn",
+    "lon": 14.8741,
+    "lat": 56.2408,
+    "lan_code": "10"
+  },
+  "1421": {
+    "name": "Orust",
+    "lon": 11.6082,
+    "lat": 58.1782,
+    "lan_code": "14"
+  },
+  "1444": {
+    "name": "Grästorp",
+    "lon": 12.6359,
+    "lat": 58.325,
+    "lan_code": "14"
+  },
+  "1499": {
+    "name": "Falköping",
+    "lon": 13.4966,
+    "lat": 58.1726,
+    "lan_code": "14"
+  },
+  "1885": {
+    "name": "Lindesberg",
+    "lon": 15.245,
+    "lat": 59.6738,
+    "lan_code": "18"
+  },
+  "1981": {
+    "name": "Sala",
+    "lon": 16.4498,
+    "lat": 59.9786,
+    "lan_code": "19"
+  },
+  "2380": {
+    "name": "Östersund",
+    "lon": 15.0045,
+    "lat": 63.246,
+    "lan_code": "23"
+  },
+  "2403": {
+    "name": "Bjurholm",
+    "lon": 18.9802,
+    "lat": 63.9493,
+    "lan_code": "24"
+  },
+  "2409": {
+    "name": "Robertsfors",
+    "lon": 20.7335,
+    "lat": 64.1419,
+    "lan_code": "24"
+  },
+  "0120": {
+    "name": "Värmdö",
+    "lon": 18.7308,
+    "lat": 59.2524,
+    "lan_code": "01"
+  },
+  "0183": {
+    "name": "Sundbyberg",
+    "lon": 17.9613,
+    "lat": 59.3667,
+    "lan_code": "01"
+  },
+  "0331": {
+    "name": "Heby",
+    "lon": 17.0066,
+    "lat": 60.0681,
+    "lan_code": "03"
+  },
+  "0560": {
+    "name": "Boxholm",
+    "lon": 15.1249,
+    "lat": 58.1362,
+    "lan_code": "05"
+  },
+  "0581": {
+    "name": "Norrköping",
+    "lon": 16.3624,
+    "lat": 58.6326,
+    "lan_code": "05"
+  },
+  "0604": {
+    "name": "Aneby",
+    "lon": 14.8093,
+    "lat": 57.8655,
+    "lan_code": "06"
+  },
+  "1401": {
+    "name": "Härryda",
+    "lon": 12.2944,
+    "lat": 57.668,
+    "lan_code": "14"
+  },
+  "1488": {
+    "name": "Trollhättan",
+    "lon": 12.3411,
+    "lat": 58.2175,
+    "lan_code": "14"
+  },
+  "1765": {
+    "name": "Årjäng",
+    "lon": 12.0199,
+    "lat": 59.4542,
+    "lan_code": "17"
+  },
+  "1783": {
+    "name": "Hagfors",
+    "lon": 13.6415,
+    "lat": 60.102,
+    "lan_code": "17"
+  },
+  "2029": {
+    "name": "Leksand",
+    "lon": 14.8644,
+    "lat": 60.7224,
+    "lan_code": "20"
+  },
+  "2101": {
+    "name": "Ockelbo",
+    "lon": 16.5516,
+    "lat": 60.9061,
+    "lan_code": "21"
+  },
+  "2280": {
+    "name": "Härnösand",
+    "lon": 17.8098,
+    "lat": 62.6885,
+    "lan_code": "22"
+  },
+  "2583": {
+    "name": "Haparanda",
+    "lon": 23.8633,
+    "lat": 65.8462,
+    "lan_code": "25"
+  },
+  "0305": {
+    "name": "Håbo",
+    "lon": 17.4536,
+    "lat": 59.6212,
+    "lan_code": "03"
+  },
+  "0484": {
+    "name": "Eskilstuna",
+    "lon": 16.3784,
+    "lat": 59.3143,
+    "lan_code": "04"
+  },
+  "0583": {
+    "name": "Motala",
+    "lon": 15.0958,
+    "lat": 58.6404,
+    "lan_code": "05"
+  },
+  "1282": {
+    "name": "Landskrona",
+    "lon": 12.8967,
+    "lat": 55.8997,
+    "lan_code": "12"
+  },
+  "1962": {
+    "name": "Norberg",
+    "lon": 15.9519,
+    "lat": 60.0558,
+    "lan_code": "19"
+  },
+  "1984": {
+    "name": "Arboga",
+    "lon": 15.7985,
+    "lat": 59.3664,
+    "lan_code": "19"
+  },
+  "2303": {
+    "name": "Ragunda",
+    "lon": 15.967,
+    "lat": 63.1588,
+    "lan_code": "23"
+  },
+  "2480": {
+    "name": "Umeå",
+    "lon": 20.2846,
+    "lat": 63.94,
+    "lan_code": "24"
+  },
+  "2560": {
+    "name": "Älvsbyn",
+    "lon": 20.6541,
+    "lat": 65.7543,
+    "lan_code": "25"
+  },
+  "0180": {
+    "name": "Stockholm",
+    "lon": 18.0327,
+    "lat": 59.33,
+    "lan_code": "01"
+  },
+  "1060": {
+    "name": "Olofström",
+    "lon": 14.5571,
+    "lat": 56.3208,
+    "lan_code": "10"
+  },
+  "1260": {
+    "name": "Bjuv",
+    "lon": 12.9753,
+    "lat": 56.0548,
+    "lan_code": "12"
+  },
+  "1267": {
+    "name": "Höör",
+    "lon": 13.51,
+    "lat": 55.9327,
+    "lan_code": "12"
+  },
+  "1270": {
+    "name": "Tomelilla",
+    "lon": 14.0179,
+    "lat": 55.628,
+    "lan_code": "12"
+  },
+  "1382": {
+    "name": "Falkenberg",
+    "lon": 12.7628,
+    "lat": 57.0391,
+    "lan_code": "13"
+  },
+  "1445": {
+    "name": "Essunga",
+    "lon": 12.757,
+    "lat": 58.1873,
+    "lan_code": "14"
+  },
+  "1730": {
+    "name": "Eda",
+    "lon": 12.1832,
+    "lat": 59.8036,
+    "lan_code": "17"
+  },
+  "2401": {
+    "name": "Nordmaling",
+    "lon": 19.4436,
+    "lat": 63.6199,
+    "lan_code": "24"
+  },
+  "2404": {
+    "name": "Vindeln",
+    "lon": 19.5343,
+    "lat": 64.403,
+    "lan_code": "24"
+  },
+  "2581": {
+    "name": "Piteå",
+    "lon": 21.0058,
+    "lat": 65.354,
+    "lan_code": "25"
+  },
+  "1442": {
+    "name": "Vårgårda",
+    "lon": 12.7633,
+    "lat": 57.9832,
+    "lan_code": "14"
+  },
+  "1766": {
+    "name": "Sunne",
+    "lon": 13.0501,
+    "lat": 59.8897,
+    "lan_code": "17"
+  },
+  "1780": {
+    "name": "Karlstad",
+    "lon": 13.7806,
+    "lat": 59.5143,
+    "lan_code": "17"
+  },
+  "1814": {
+    "name": "Lekeberg",
+    "lon": 14.8043,
+    "lat": 59.1774,
+    "lan_code": "18"
+  },
+  "1860": {
+    "name": "Laxå",
+    "lon": 14.5254,
+    "lat": 58.8972,
+    "lan_code": "18"
+  },
+  "1884": {
+    "name": "Nora",
+    "lon": 14.8936,
+    "lat": 59.5457,
+    "lan_code": "18"
+  },
+  "2180": {
+    "name": "Gävle",
+    "lon": 17.1266,
+    "lat": 60.6758,
+    "lan_code": "21"
+  },
+  "2313": {
+    "name": "Strömsund",
+    "lon": 15.5798,
+    "lat": 64.2067,
+    "lan_code": "23"
+  },
+  "0182": {
+    "name": "Nacka",
+    "lon": 18.224,
+    "lat": 59.2948,
+    "lan_code": "01"
+  },
+  "0482": {
+    "name": "Flen",
+    "lon": 16.7494,
+    "lat": 59.0583,
+    "lan_code": "04"
+  },
+  "0586": {
+    "name": "Mjölby",
+    "lon": 15.1796,
+    "lat": 58.2972,
+    "lan_code": "05"
+  },
+  "0885": {
+    "name": "Borgholm",
+    "lon": 16.8833,
+    "lat": 57.0171,
+    "lan_code": "08"
+  },
+  "1291": {
+    "name": "Simrishamn",
+    "lon": 14.2487,
+    "lat": 55.5791,
+    "lan_code": "12"
+  },
+  "1381": {
+    "name": "Laholm",
+    "lon": 13.1509,
+    "lat": 56.5055,
+    "lan_code": "13"
+  },
+  "1438": {
+    "name": "Dals-Ed",
+    "lon": 11.903,
+    "lat": 58.9887,
+    "lan_code": "14"
+  },
+  "1447": {
+    "name": "Gullspång",
+    "lon": 14.1549,
+    "lat": 58.916,
+    "lan_code": "14"
+  },
+  "1487": {
+    "name": "Vänersborg",
+    "lon": 12.3596,
+    "lat": 58.4441,
+    "lan_code": "14"
+  },
+  "1982": {
+    "name": "Fagersta",
+    "lon": 15.8894,
+    "lat": 59.9558,
+    "lan_code": "19"
+  }
+}

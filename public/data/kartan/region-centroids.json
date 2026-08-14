@@ -1,0 +1,107 @@
+{
+  "21": {
+    "name": "Gävleborg",
+    "lon": 16.3696,
+    "lat": 61.2772
+  },
+  "6": {
+    "name": "Jönköping",
+    "lon": 14.646,
+    "lat": 57.5373
+  },
+  "8": {
+    "name": "Kalmar",
+    "lon": 16.007,
+    "lat": 57.236
+  },
+  "20": {
+    "name": "Dalarna",
+    "lon": 14.2386,
+    "lat": 61.0956
+  },
+  "7": {
+    "name": "Kronoberg",
+    "lon": 14.3965,
+    "lat": 56.7908
+  },
+  "18": {
+    "name": "Örebro",
+    "lon": 15.0039,
+    "lat": 59.3549
+  },
+  "5": {
+    "name": "Östergötland",
+    "lon": 15.6605,
+    "lat": 58.381
+  },
+  "4": {
+    "name": "Södermanland",
+    "lon": 16.5163,
+    "lat": 59.0656
+  },
+  "19": {
+    "name": "Västmanland",
+    "lon": 16.1881,
+    "lat": 59.7629
+  },
+  "13": {
+    "name": "Halland",
+    "lon": 13.0108,
+    "lat": 56.9477
+  },
+  "17": {
+    "name": "Värmland",
+    "lon": 13.2846,
+    "lat": 59.9002
+  },
+  "23": {
+    "name": "Jämtland",
+    "lon": 14.1609,
+    "lat": 63.3334
+  },
+  "25": {
+    "name": "Norrbotten",
+    "lon": 20.0471,
+    "lat": 67.0511
+  },
+  "22": {
+    "name": "Västernorrland",
+    "lon": 17.6499,
+    "lat": 63.0906
+  },
+  "24": {
+    "name": "Västerbotten",
+    "lon": 18.0307,
+    "lat": 64.9179
+  },
+  "9": {
+    "name": "Gotland",
+    "lon": 18.5385,
+    "lat": 57.4218
+  },
+  "1": {
+    "name": "Stockholm",
+    "lon": 18.0225,
+    "lat": 59.5166
+  },
+  "3": {
+    "name": "Uppsala",
+    "lon": 17.8108,
+    "lat": 59.9634
+  },
+  "10": {
+    "name": "Blekinge",
+    "lon": 15.2706,
+    "lat": 56.2471
+  },
+  "14": {
+    "name": "Västra Götaland",
+    "lon": 13.1433,
+    "lat": 58.2118
+  },
+  "12": {
+    "name": "Skåne",
+    "lon": 13.556,
+    "lat": 55.92
+  }
+}

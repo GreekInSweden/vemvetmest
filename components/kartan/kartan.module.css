@@ -1,0 +1,381 @@
+/* Kartan — omstylad för att dela KanDuAlla:s riktiga design-tokens
+   (var(--bg), var(--amber) osv, definierade i app/globals.css) istället
+   för den fristående marinblå/guld-paletten från prototypfasen. */
+
+.category {
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+
+.mapWrap {
+  aspect-ratio: 400 / 760;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  width: 100%;
+}
+
+.mapSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: radial-gradient(circle at 30% 0%, var(--panel-2) 0%, var(--bg-2) 60%);
+}
+
+.mapLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg-2);
+  border-radius: 8px;
+}
+
+.hoverBadge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.zoomHint {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.zoomGroup {
+  transition: transform 1100ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.region {
+  fill: var(--panel);
+  stroke: var(--line);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+  transition: fill 300ms ease, opacity 500ms ease;
+  cursor: pointer;
+}
+
+.region:hover {
+  fill: var(--panel-2);
+  stroke: var(--muted);
+}
+
+.regionGuess {
+  fill: #4fa8d8;
+  stroke: #4fa8d8;
+  stroke-width: 1.2;
+}
+
+.regionCorrect {
+  fill: var(--amber);
+  animation: pulseGlow 1.6s ease-in-out infinite;
+}
+
+.regionDimmed {
+  fill: var(--bg-2);
+  opacity: 0.35;
+  cursor: default;
+}
+
+.guessDot {
+  fill: #4fa8d8;
+  stroke: var(--bg-2);
+  stroke-width: 1.5;
+}
+
+.correctDot {
+  fill: var(--amber);
+  animation: pulseGlow 1.6s ease-in-out infinite;
+}
+
+.pingRing {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 1.5;
+  animation: ping 1.4s ease-out infinite;
+}
+
+.distanceLine {
+  stroke: var(--muted);
+  stroke-width: 0.8;
+  stroke-dasharray: 3 3;
+}
+
+/* --- Knappar & resultatkort --- */
+
+.primaryButton {
+  width: 100%;
+  padding: 15px 0;
+  border-radius: 4px;
+  border: none;
+  background: var(--amber);
+  color: #241505;
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: filter 200ms ease, transform 150ms ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.primaryButton:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.primaryButton:disabled {
+  background: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.resultCard {
+  background: var(--panel);
+  border: 1px solid var(--amber);
+  border-radius: 6px;
+  padding: 20px 22px;
+  margin-top: 16px;
+}
+
+.resultLabel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.resultValue {
+  font-size: 17px;
+  color: var(--text);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.resultDetail {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.resultDetailGood {
+  color: var(--amber-glow);
+}
+
+/* --- Lägesindikator: skiljer visuellt på kommun-klick och nålgissning --- */
+
+.modeBadge {
+  display: inline-block;
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+}
+
+.modeBadgeKommun {
+  color: #c3a6f0;
+  background: #a78bda1a;
+  border-color: #a78bda55;
+}
+
+.modeBadgePunkt {
+  color: #7cc4ed;
+  background: #4fa8d81a;
+  border-color: #4fa8d855;
+}
+
+.mapWrapKommun {
+  border-color: #a78bda55;
+}
+
+.mapWrapPunkt {
+  border-color: #4fa8d855;
+}
+
+.secondaryButton {
+  margin-top: 16px;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  border-radius: 4px;
+  padding: 10px 18px;
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 200ms ease, color 200ms ease;
+}
+
+.secondaryButton:hover {
+  border-color: var(--amber);
+  color: var(--text);
+}
+
+.errorNote {
+  margin-top: 10px;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  color: #e78a6c;
+}
+
+/* --- Statistik & kvar-räknare (sidebar topp/botten) --- */
+
+.statsCard {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.statsTitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.statsRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text);
+  padding: 3px 0;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.statsRowValue {
+  color: var(--amber-glow);
+  font-weight: 700;
+}
+
+.quotaCard {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.quotaBarTrack {
+  height: 6px;
+  background: var(--bg-2);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.quotaBarFill {
+  height: 100%;
+  background: var(--amber);
+  border-radius: 999px;
+  transition: width 400ms ease;
+}
+
+.quotaLabel {
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted);
+}
+
+.quotaDone {
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--amber-glow);
+  margin-top: 6px;
+}
+
+/* --- Layout: sida-vid-sida på desktop, staplat på mobil --- */
+
+.gameLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.mapArea {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .gameLayout {
+    flex-direction: row;
+    align-items: stretch;
+    height: calc(100vh - 260px);
+    min-height: 420px;
+  }
+
+  .sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    justify-content: flex-start;
+  }
+
+  .mapArea {
+    flex: 1;
+    align-items: stretch;
+  }
+
+  .mapArea .mapWrap {
+    height: 100%;
+    width: auto;
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 3px var(--amber)) drop-shadow(0 0 0px var(--amber));
+  }
+  50% {
+    filter: drop-shadow(0 0 14px var(--amber)) drop-shadow(0 0 26px var(--amber));
+  }
+}
+
+@keyframes ping {
+  0% {
+    r: 3;
+    opacity: 0.9;
+  }
+  100% {
+    r: 34;
+    opacity: 0;
+  }
+}
