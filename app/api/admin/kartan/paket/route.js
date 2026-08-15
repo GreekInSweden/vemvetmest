@@ -16,7 +16,7 @@ export async function POST(request) {
     return Response.json({ error: check.error }, { status: check.status });
   }
 
-  const { namn, antalKommun = 5, antalPunkt = 5, kategoriIds } = await request.json();
+  const { namn, antalKommun = 5, antalPunkt = 5, kategoriIds, kraverMedlemskap = true } = await request.json();
 
   const supabase = createAdminClient();
 
@@ -90,6 +90,7 @@ export async function POST(request) {
     .insert({
       namn: namn || `Paket ${new Date().toISOString().slice(0, 10)}`,
       status: 'utkast',
+      kraver_medlemskap: kraverMedlemskap,
       ...(vyBounds || {}),
     })
     .select()

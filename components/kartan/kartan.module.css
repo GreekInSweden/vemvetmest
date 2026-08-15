@@ -328,6 +328,29 @@
   flex-direction: column;
 }
 
+/* Knapp/resultatkort fastklistrad längst ner på mobil — annars kan man
+   bli "fastlåst" på en stor karta: kartan tar hand om alla pekrörelser
+   för att panorera, så sidan går inte att scrolla tillbaka upp till
+   knappen med fingret kvar på kartan. "fixed" (inte "sticky") används
+   medvetet — sticky hade bara hållit kvar knappen inom sidopanelens
+   egen, korta yta, inte över hela skärmen där kartan tar plats.
+*/
+.actionBar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+}
+
+/* Ger plats så sidans innehåll inte hamnar dolt bakom den fasta baren. */
+.gameLayout {
+  padding-bottom: 90px;
+}
+
 .mapArea {
   display: flex;
   justify-content: center;
@@ -340,12 +363,22 @@
     align-items: stretch;
     height: calc(100vh - 260px);
     min-height: 420px;
+    padding-bottom: 0;
   }
 
   .sidebar {
     width: 320px;
     flex-shrink: 0;
     justify-content: flex-start;
+  }
+
+  .actionBar {
+    /* På desktop finns gott om plats i sidopanelen — ingen anledning
+       att fästa knappen vid skärmkanten, det skulle bara se konstigt ut. */
+    position: static;
+    background: none;
+    border-top: none;
+    padding: 0;
   }
 
   .mapArea {

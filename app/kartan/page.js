@@ -47,7 +47,9 @@ function LaunchCountdownScreen({ launchAt }) {
 export default function KartanPage() {
   const router = useRouter();
   const [userId, setUserId] = useState(null);
-  const [eligibility, setEligibility] = useState(null);
+  const [hasPaidAccess, setHasPaidAccess] = useState(false);
+  const [launchAt, setLaunchAt] = useState(null);
+  const [checking, setChecking] = useState(true);
   const [aktivtPaketId, setAktivtPaketId] = useState(null);
 
   const { paket, loading: paketLoading } = usePubliceradePaket();
@@ -69,14 +71,11 @@ export default function KartanPage() {
         .single();
 
       const today = ymd(stockholmNow());
-      const hasPaidAccess = !!profile?.is_admin || (!!profile?.paid_until && profile.paid_until >= today);
+      const paidAccess = !!profile?.is_admin || (!!profile?.paid_until && profile.paid_until >= today);
+      setHasPaidAccess(paidAccess);
 
-      if (!hasPaidAccess) {
-        setEligibility({ ok: false, reason: 'Kartan kräver ett betalt medlemskap.', needsPayment: true });
-        return;
-      }
-
-      // Lanseringsnedräkning: samma mönster som Dagens utmaning.
+      // Lanseringsnedräkning: gäller HELA Kartan, oavsett om enskilda
+      // paket är gratis eller ej — inget ska synas före lansering.
       // Admin kommer alltid förbi.
       if (!profile?.is_admin) {
         const { data: settingsRow } = await supabase
@@ -85,18 +84,17 @@ export default function KartanPage() {
           .eq('id', 1)
           .single();
         if (settingsRow?.kartan_launch_at && timeUntil(settingsRow.kartan_launch_at)) {
-          setEligibility({ ok: false, reason: '', launchAt: settingsRow.kartan_launch_at });
-          return;
+          setLaunchAt(settingsRow.kartan_launch_at);
         }
       }
 
-      setEligibility({ ok: true });
+      setChecking(false);
     }
 
     checkAccess();
   }, [router]);
 
-  if (!eligibility) {
+  if (checking) {
     return (
       <div className="wrap">
         <p className="subhead">Laddar…</p>
@@ -104,30 +102,12 @@ export default function KartanPage() {
     );
   }
 
-  if (eligibility.launchAt) {
-    return <LaunchCountdownScreen launchAt={eligibility.launchAt} />;
-  }
-
-  if (!eligibility.ok) {
-    return (
-      <div className="wrap">
-        <div className="topbar">
-          <a className="btn btn-ghost" href="/">
-            &larr; Alla spel
-          </a>
-        </div>
-        <div className="upgrade-card">
-          <span className="upgrade-badge">Medlemskap krävs</span>
-          <div className="upgrade-title">{eligibility.reason}</div>
-          <a className="btn btn-primary" href="/prenumerera" style={{ display: 'inline-block', width: 'auto', marginTop: 10 }}>
-            Bli medlem
-          </a>
-        </div>
-      </div>
-    );
+  if (launchAt) {
+    return <LaunchCountdownScreen launchAt={launchAt} />;
   }
 
   const aktivtPaket = paket.find((p) => p.id === aktivtPaketId);
+  const aktivtPaketLast = aktivtPaket && (!aktivtPaket.kraver_medlemskap || hasPaidAccess);
   const aktivtPaketViewBounds =
     aktivtPaket?.vy_lat_min != null
       ? {
@@ -137,6 +117,9 @@ export default function KartanPage() {
           lonMax: aktivtPaket.vy_lon_max,
         }
       : null;
+
+  const frittPaket = paket.filter((p) => !p.kraver_medlemskap);
+  const medlemsPaket = paket.filter((p) => p.kraver_medlemskap);
 
   return (
     <div className="wrap">
@@ -149,7 +132,7 @@ export default function KartanPage() {
       <p className="eyebrow">KAN DU ALLA</p>
       <h1 className="brand">Kartan</h1>
 
-      {aktivtPaket ? (
+      {aktivtPaket && aktivtPaketLast ? (
         <div style={{ marginTop: 20 }}>
           <PaketSpel
             paketId={aktivtPaket.id}
@@ -167,19 +150,72 @@ export default function KartanPage() {
             <p className="subhead">Inga paket är publicerade just nu — kom tillbaka snart!</p>
           )}
 
-          <div className="list-grid">
-            {paket.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setAktivtPaketId(p.id)}
-                className="plaque"
-                style={{ textAlign: 'left', width: '100%', border: '1px solid var(--line)' }}
-              >
-                <span className="tag">PAKET</span>
-                {p.namn}
-              </button>
-            ))}
-          </div>
+          {frittPaket.length > 0 && (
+            <>
+              <p className="subhead" style={{ marginBottom: 10 }}>Testa gratis</p>
+              <div className="list-grid" style={{ marginBottom: 28 }}>
+                {frittPaket.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => setAktivtPaketId(p.id)}
+                    className="plaque"
+                    style={{ textAlign: 'left', width: '100%', border: '1px solid var(--line)' }}
+                  >
+                    <span className="tag">PAKET</span>
+                    {p.namn}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {medlemsPaket.length > 0 && (
+            <>
+              <p className="subhead" style={{ marginBottom: 10 }}>
+                Medlemspaket {!hasPaidAccess && '— kräver betalt medlemskap'}
+              </p>
+              <div className="list-grid">
+                {medlemsPaket.map((p) =>
+                  hasPaidAccess ? (
+                    <button
+                      key={p.id}
+                      onClick={() => setAktivtPaketId(p.id)}
+                      className="plaque"
+                      style={{ textAlign: 'left', width: '100%', border: '1px solid var(--line)' }}
+                    >
+                      <span className="tag">PAKET</span>
+                      {p.namn}
+                    </button>
+                  ) : (
+                    <div
+                      key={p.id}
+                      className="plaque"
+                      style={{
+                        textAlign: 'left',
+                        width: '100%',
+                        border: '1px solid var(--line)',
+                        opacity: 0.55,
+                        cursor: 'not-allowed',
+                        position: 'relative',
+                      }}
+                    >
+                      <span className="tag">🔒 MEDLEM</span>
+                      {p.namn}
+                    </div>
+                  )
+                )}
+              </div>
+              {!hasPaidAccess && (
+                <a
+                  className="btn btn-primary"
+                  href="/prenumerera"
+                  style={{ display: 'inline-block', width: 'auto', marginTop: 16 }}
+                >
+                  Bli medlem för att låsa upp allt
+                </a>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

@@ -154,6 +154,7 @@ function PaketSektion({
   const [valdaKategorier, setValdaKategorier] = useState(new Set());
   const [antalKommun, setAntalKommun] = useState(5);
   const [antalPunkt, setAntalPunkt] = useState(5);
+  const [kraverMedlemskap, setKraverMedlemskap] = useState(true);
   const [skapar, setSkapar] = useState(false);
   const [error, setError] = useState(null);
 
@@ -170,7 +171,7 @@ function PaketSektion({
     setSkapar(true);
     setError(null);
     try {
-      const body = { antalKommun, antalPunkt };
+      const body = { antalKommun, antalPunkt, kraverMedlemskap };
       if (namn) body.namn = namn;
       if (lage === 'tema') {
         if (valdaKategorier.size === 0) {
@@ -203,6 +204,15 @@ function PaketSektion({
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: nyStatus }),
+    });
+    onChanged();
+  }
+
+  async function togglaMedlemskap(p) {
+    await authedFetch(`/api/admin/kartan/paket/${p.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kraverMedlemskap: !p.kraver_medlemskap }),
     });
     onChanged();
   }
@@ -263,6 +273,11 @@ function PaketSektion({
         </div>
       </div>
 
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text)', cursor: 'pointer', marginBottom: 16 }}>
+        <input type="checkbox" checked={kraverMedlemskap} onChange={(e) => setKraverMedlemskap(e.target.checked)} />
+        Kräver betalt medlemskap (avmarkera för ett fritt smakprov, synligt för alla)
+      </label>
+
       <button className={styles.button} disabled={skapar} onClick={skapaPaket}>
         {skapar ? 'Skapar…' : lage === 'tema' ? 'Skapa temapaket' : 'Skapa nytt paket'}
       </button>
@@ -280,17 +295,28 @@ function PaketSektion({
                 <span onClick={() => setOppetPaketId(oppet ? null : p.id)} style={{ cursor: 'pointer', fontWeight: 600 }}>
                   {p.namn} <span className={styles.listItemMeta}>({rundorIPaket.length} frågor · {new Date(p.skapad_at).toLocaleDateString('sv-SE')})</span>
                 </span>
-                <button
-                  onClick={() => togglaStatus(p)}
-                  className={styles.typeButton}
-                  style={{
-                    flexShrink: 0,
-                    borderColor: p.status === 'publicerad' ? '#4ade80' : 'var(--line)',
-                    color: p.status === 'publicerad' ? '#4ade80' : 'var(--muted)',
-                  }}
-                >
-                  {p.status === 'publicerad' ? '● Publicerad' : '○ Utkast'}
-                </button>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                  <button
+                    onClick={() => togglaMedlemskap(p)}
+                    className={styles.typeButton}
+                    style={{
+                      borderColor: p.kraver_medlemskap ? 'var(--line)' : '#4ade80',
+                      color: p.kraver_medlemskap ? 'var(--muted)' : '#4ade80',
+                    }}
+                  >
+                    {p.kraver_medlemskap ? '🔒 Medlem' : '✓ Fritt'}
+                  </button>
+                  <button
+                    onClick={() => togglaStatus(p)}
+                    className={styles.typeButton}
+                    style={{
+                      borderColor: p.status === 'publicerad' ? '#4ade80' : 'var(--line)',
+                      color: p.status === 'publicerad' ? '#4ade80' : 'var(--muted)',
+                    }}
+                  >
+                    {p.status === 'publicerad' ? '● Publicerad' : '○ Utkast'}
+                  </button>
+                </div>
               </div>
 
               {oppet && (

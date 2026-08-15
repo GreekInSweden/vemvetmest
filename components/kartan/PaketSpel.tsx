@@ -107,7 +107,7 @@ export function PaketSpel({ paketId, paketNamn, spelareId, onKlar, viewBounds }:
         <p className={styles.category}>{fraga.titel}</p>
 
         {!revealed ? (
-          <>
+          <div className={styles.actionBar}>
             <button
               className={styles.primaryButton}
               disabled={(fraga.typ === "punkt" ? !guessPoint : !guessId) || submitting}
@@ -124,9 +124,9 @@ export function PaketSpel({ paketId, paketNamn, spelareId, onKlar, viewBounds }:
                 : "Välj ett län"}
             </button>
             {guessError && <p className={styles.errorNote}>{guessError}</p>}
-          </>
+          </div>
         ) : (
-          <div className={styles.resultCard}>
+          <div className={`${styles.resultCard} ${styles.actionBar}`}>
             <p className={styles.resultLabel}>Rätt svar</p>
             <p className={styles.resultValue}>{resultat?.visadVarde}</p>
             {fraga.typ === "punkt" ? (

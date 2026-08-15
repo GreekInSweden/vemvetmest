@@ -23,7 +23,7 @@ export async function GET(request) {
 
   const { data: paket, error: paketError } = await supabase
     .from('kartan_paket')
-    .select('id, namn, status, skapad_at')
+    .select('id, namn, status, skapad_at, kraver_medlemskap')
     .order('skapad_at', { ascending: false });
   if (paketError) return Response.json({ error: paketError.message }, { status: 500 });
 

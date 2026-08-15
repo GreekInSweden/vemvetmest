@@ -8,16 +8,26 @@ export async function PATCH(request, { params }) {
   }
 
   const { id } = await params;
-  const { status } = await request.json();
+  const { status, kraverMedlemskap } = await request.json();
 
-  if (!['utkast', 'publicerad'].includes(status)) {
-    return Response.json({ error: "status måste vara 'utkast' eller 'publicerad'." }, { status: 400 });
+  const updates = {};
+  if (status !== undefined) {
+    if (!['utkast', 'publicerad'].includes(status)) {
+      return Response.json({ error: "status måste vara 'utkast' eller 'publicerad'." }, { status: 400 });
+    }
+    updates.status = status;
+  }
+  if (kraverMedlemskap !== undefined) {
+    updates.kraver_medlemskap = !!kraverMedlemskap;
+  }
+  if (Object.keys(updates).length === 0) {
+    return Response.json({ error: 'Inget att uppdatera.' }, { status: 400 });
   }
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('kartan_paket')
-    .update({ status })
+    .update(updates)
     .eq('id', id)
     .select()
     .single();
