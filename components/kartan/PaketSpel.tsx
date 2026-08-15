@@ -91,20 +91,22 @@ export function PaketSpel({ paketId, paketNamn, spelareId, onKlar, viewBounds }:
   return (
     <div className={styles.gameLayout}>
       <div className={styles.sidebar}>
-        <p className={styles.quotaLabel} style={{ marginBottom: 10 }}>
-          Fråga {index + 1} av {fragor.length} — {totalPoang} poäng hittills
-        </p>
-        <div className={styles.quotaBarTrack} style={{ marginBottom: 18 }}>
-          <div
-            className={styles.quotaBarFill}
-            style={{ width: `${(index / fragor.length) * 100}%` }}
-          />
-        </div>
+        <div className={styles.questionBar}>
+          <p className={styles.quotaLabel} style={{ marginBottom: 10 }}>
+            Fråga {index + 1} av {fragor.length} — {totalPoang} poäng hittills
+          </p>
+          <div className={styles.quotaBarTrack} style={{ marginBottom: 18 }}>
+            <div
+              className={styles.quotaBarFill}
+              style={{ width: `${(index / fragor.length) * 100}%` }}
+            />
+          </div>
 
-        <p className={`${styles.modeBadge} ${fraga.typ === "punkt" ? styles.modeBadgePunkt : styles.modeBadgeKommun}`}>
-          {fraga.typ === "punkt" ? "NÅLGISSNING" : "KOMMUN"}
-        </p>
-        <p className={styles.category}>{fraga.titel}</p>
+          <p className={`${styles.modeBadge} ${fraga.typ === "punkt" ? styles.modeBadgePunkt : styles.modeBadgeKommun}`}>
+            {fraga.typ === "punkt" ? "NÅLGISSNING" : "KOMMUN"}
+          </p>
+          <p className={styles.category}>{fraga.titel}</p>
+        </div>
 
         {!revealed ? (
           <div className={styles.actionBar}>

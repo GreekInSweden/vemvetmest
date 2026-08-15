@@ -328,6 +328,27 @@
   flex-direction: column;
 }
 
+/* Fråga/framsteg fastspikad högst upp på mobil, av samma anledning som
+   actionBar nedan — annars scrollar frågetexten bort ur synhåll så
+   fort man börjar interagera med kartan, och går inte att scrolla
+   tillbaka till (kartan äter pekrörelserna). */
+.questionBar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  padding: 14px 16px 12px;
+}
+
+/* Ger plats i toppen så innehållet inte hamnar dolt bakom den fasta
+   frågeraden (ungefärlig höjd på questionBar-blocket). */
+.gameLayout {
+  padding-top: 128px;
+}
+
 /* Knapp/resultatkort fastklistrad längst ner på mobil — annars kan man
    bli "fastlåst" på en stor karta: kartan tar hand om alla pekrörelser
    för att panorera, så sidan går inte att scrolla tillbaka upp till
@@ -364,12 +385,22 @@
     height: calc(100vh - 260px);
     min-height: 420px;
     padding-bottom: 0;
+    padding-top: 0;
   }
 
   .sidebar {
     width: 320px;
     flex-shrink: 0;
     justify-content: flex-start;
+  }
+
+  .questionBar {
+    /* Samma resonemang som actionBar — gott om plats i sidopanelen
+       på desktop, ingen anledning att fästa något vid skärmkanten. */
+    position: static;
+    background: none;
+    border-bottom: none;
+    padding: 0;
   }
 
   .actionBar {
