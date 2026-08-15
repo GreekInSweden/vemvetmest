@@ -47,12 +47,19 @@ function LaunchCountdownScreen({ launchAt }) {
 export default function KartanPage() {
   const router = useRouter();
   const [userId, setUserId] = useState(null);
+  const [username, setUsername] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [hasPaidAccess, setHasPaidAccess] = useState(false);
   const [launchAt, setLaunchAt] = useState(null);
   const [checking, setChecking] = useState(true);
   const [aktivtPaketId, setAktivtPaketId] = useState(null);
 
   const { paket, loading: paketLoading } = usePubliceradePaket();
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.push('/login');
+  }
 
   useEffect(() => {
     async function checkAccess() {
@@ -66,9 +73,12 @@ export default function KartanPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('paid_until, is_admin')
+        .select('username, paid_until, is_admin')
         .eq('id', uid)
         .single();
+
+      setUsername(profile?.username || '');
+      setIsAdmin(!!profile?.is_admin);
 
       const today = ymd(stockholmNow());
       const paidAccess = !!profile?.is_admin || (!!profile?.paid_until && profile.paid_until >= today);
@@ -124,12 +134,18 @@ export default function KartanPage() {
   return (
     <div className="wrap">
       <div className="topbar">
-        <a className="btn btn-ghost" href="/">
-          &larr; Alla spel
-        </a>
+        <div className="user">Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b></div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <a className="btn btn-ghost" href="/">Alla spel</a>
+          <a className="btn btn-ghost" href="/profil">Min profil</a>
+          <a className="btn btn-ghost" href="/kartan">Kartan</a>
+          <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
+          {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
+          <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
+        </div>
       </div>
 
-      <p className="eyebrow">KAN DU ALLA</p>
+      <p className="eyebrow" style={{ marginTop: 20 }}>KAN DU ALLA</p>
       <h1 className="brand">Kartan</h1>
 
       {aktivtPaket && aktivtPaketLast ? (
