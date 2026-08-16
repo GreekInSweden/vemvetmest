@@ -8,7 +8,7 @@ export async function PATCH(request, { params }) {
   }
 
   const { id } = await params;
-  const { status, kraverMedlemskap } = await request.json();
+  const { status, kraverMedlemskap, dagligPool } = await request.json();
 
   const updates = {};
   if (status !== undefined) {
@@ -19,6 +19,9 @@ export async function PATCH(request, { params }) {
   }
   if (kraverMedlemskap !== undefined) {
     updates.kraver_medlemskap = !!kraverMedlemskap;
+  }
+  if (dagligPool !== undefined) {
+    updates.daglig_pool = !!dagligPool;
   }
   if (Object.keys(updates).length === 0) {
     return Response.json({ error: 'Inget att uppdatera.' }, { status: 400 });

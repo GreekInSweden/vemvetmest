@@ -217,6 +217,15 @@ function PaketSektion({
     onChanged();
   }
 
+  async function togglaDagligPool(p) {
+    await authedFetch(`/api/admin/kartan/paket/${p.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dagligPool: !p.daglig_pool }),
+    });
+    onChanged();
+  }
+
   return (
     <div className={styles.section}>
       <p className={styles.sectionTitle}>Paket</p>
@@ -295,7 +304,17 @@ function PaketSektion({
                 <span onClick={() => setOppetPaketId(oppet ? null : p.id)} style={{ cursor: 'pointer', fontWeight: 600 }}>
                   {p.namn} <span className={styles.listItemMeta}>({rundorIPaket.length} frågor · {new Date(p.skapad_at).toLocaleDateString('sv-SE')})</span>
                 </span>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => togglaDagligPool(p)}
+                    className={styles.typeButton}
+                    style={{
+                      borderColor: p.daglig_pool ? '#7cc4ed' : 'var(--line)',
+                      color: p.daglig_pool ? '#7cc4ed' : 'var(--muted)',
+                    }}
+                  >
+                    {p.daglig_pool ? '📅 I dagspoolen' : '– Ej i dagspoolen'}
+                  </button>
                   <button
                     onClick={() => togglaMedlemskap(p)}
                     className={styles.typeButton}

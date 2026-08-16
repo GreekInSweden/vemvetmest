@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { timeUntil, formatCountdown } from '../../lib/countdown';
 import { usePubliceradePaket } from '../../hooks/useKartanPaket';
@@ -44,8 +44,9 @@ function LaunchCountdownScreen({ launchAt }) {
   );
 }
 
-export default function KartanPage() {
+function KartanPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [userId, setUserId] = useState(null);
   const [username, setUsername] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
@@ -53,6 +54,14 @@ export default function KartanPage() {
   const [launchAt, setLaunchAt] = useState(null);
   const [checking, setChecking] = useState(true);
   const [aktivtPaketId, setAktivtPaketId] = useState(null);
+
+  // Länk direkt in i ett specifikt paket (t.ex. "dagens Kartan-utmaning"
+  // från hub-sidan): /kartan?paket=<id> väljer det paketet automatiskt,
+  // så länge det faktiskt är publicerat och listat.
+  useEffect(() => {
+    const paketFranUrl = searchParams.get('paket');
+    if (paketFranUrl) setAktivtPaketId(paketFranUrl);
+  }, [searchParams]);
 
   const { paket, loading: paketLoading } = usePubliceradePaket();
 
@@ -235,5 +244,13 @@ export default function KartanPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function KartanPage() {
+  return (
+    <Suspense fallback={<div className="wrap"><p className="subhead">Laddar…</p></div>}>
+      <KartanPageContent />
+    </Suspense>
   );
 }

@@ -116,6 +116,77 @@ h1.brand{
 }
 .plaque:hover{ border-color: var(--amber); color: var(--text); }
 
+/* --- Stora spelkort på hub-sidan --- */
+
+.game-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+@media (max-width: 700px) {
+  .game-grid { grid-template-columns: 1fr; }
+}
+
+.game-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 32px 28px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  min-height: 180px;
+}
+.game-card:hover {
+  transform: translateY(-2px);
+}
+
+.game-card-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: .2em;
+  opacity: .7;
+}
+
+.game-card-title {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 4px 0 2px;
+}
+
+.game-card-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.game-card-kandualla {
+  border-color: var(--line);
+}
+.game-card-kandualla .game-card-eyebrow { color: var(--amber); }
+.game-card-kandualla .game-card-title { color: var(--text); }
+.game-card-kandualla:hover {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 8px 24px rgba(232, 163, 61, 0.12);
+}
+
+.game-card-kartan {
+  border-color: var(--line);
+}
+.game-card-kartan .game-card-eyebrow { color: #7cc4ed; }
+.game-card-kartan .game-card-title { color: var(--text); }
+.game-card-kartan:hover {
+  border-color: #4fa8d8;
+  box-shadow: 0 0 0 1px #4fa8d8, 0 8px 24px rgba(79, 168, 216, 0.12);
+}
+
+
 .cat-title{
   font-family:'Oswald', sans-serif;
   text-transform: uppercase;
