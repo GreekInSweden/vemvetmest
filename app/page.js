@@ -93,8 +93,10 @@ export default function Hub() {
         </div>
       </div>
 
-      <p className="eyebrow" style={{ marginTop: 24 }}>KAN DU ALLA</p>
-      <h1 className="brand" style={{ fontSize: 44 }}>Spelen som utmanar dig och dina vänner</h1>
+      <h1 className="brand" style={{ marginTop: 24 }}>Kan Du Alla</h1>
+      <p style={{ fontFamily: "'Oswald', sans-serif", textTransform: 'uppercase', letterSpacing: '.03em', fontSize: 18, fontWeight: 600, color: 'var(--amber-glow)', margin: '0 0 24px' }}>
+        Spelen som utmanar dig och dina vänner
+      </p>
 
       {hasPaidAccess ? (
         (kanduallaChallenge || kartanChallenge) && (
