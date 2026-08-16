@@ -23,6 +23,15 @@ export default function Hub() {
   const [kanduallaChallenge, setKanduallaChallenge] = useState(null);
   const [kartanChallenge, setKartanChallenge] = useState(null);
 
+  // Synliga (featured) KanDuAlla-spel — hämtas alltid, inloggad eller ej.
+  const [categories, setCategories] = useState([]);
+  const [featuredLists, setFeaturedLists] = useState([]);
+  const [memberLists, setMemberLists] = useState([]);
+
+  // Kartans paket, uppdelat på gratis och medlem — samma logik som /kartan.
+  const [frittKartanPaket, setFrittKartanPaket] = useState([]);
+  const [medlemsKartanPaket, setMedlemsKartanPaket] = useState([]);
+
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push('/login');
@@ -30,18 +39,40 @@ export default function Hub() {
 
   useEffect(() => {
     async function load() {
+      // --- Synligt skyltfönster: hämtas ALLTID, oavsett inloggning ---
+      const { data: cats } = await supabase.from('categories').select('*').order('sort_order');
+      const { data: gameLists } = await supabase
+        .from('game_lists')
+        .select('id, slug, title, subtitle, category_id')
+        .eq('featured', true)
+        .order('sort_order');
+      setCategories(cats || []);
+      setFeaturedLists(gameLists || []);
+
+      const { data: kartanPaket } = await supabase
+        .from('kartan_paket')
+        .select('id, namn, kraver_medlemskap')
+        .eq('status', 'publicerad');
+      setFrittKartanPaket((kartanPaket || []).filter((p) => !p.kraver_medlemskap));
+
       const { data: sessionData } = await supabase.auth.getSession();
       const uid = sessionData.session ? sessionData.session.user.id : null;
 
       if (!uid) {
-        // Publik vy — ingen inloggning krävs för att se vad sajten
-        // erbjuder, precis som KanDuAlla:s ursprungliga förstasida.
         setLoggedIn(false);
         setLoading(false);
         return;
       }
 
       setLoggedIn(true);
+
+      const { data: memberGames } = await supabase
+        .from('game_lists')
+        .select('id, slug, title, subtitle, category_id')
+        .eq('member_exclusive', true)
+        .order('sort_order');
+      setMemberLists(memberGames || []);
+      setMedlemsKartanPaket((kartanPaket || []).filter((p) => p.kraver_medlemskap));
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -118,30 +149,17 @@ export default function Hub() {
       </p>
 
       {loggedIn && hasPaidAccess && (kanduallaChallenge || kartanChallenge) && (
-        <div style={{ marginBottom: 36 }}>
-          <p className="subhead" style={{ marginBottom: 10 }}>Dagens utmaningar</p>
+        <div style={{ marginBottom: 32 }}>
+          <div className="cat-title">Dagens utmaningar</div>
           <div className="list-grid">
             {kanduallaChallenge && (
-              <a
-                href={`/daily/${kanduallaChallenge.id}`}
-                className="plaque"
-                style={{ textAlign: 'left', border: '1px solid var(--amber)' }}
-              >
+              <a href={`/daily/${kanduallaChallenge.id}`} className="plaque" style={{ border: '1px solid var(--amber)' }}>
                 <span className="tag">KAN DU ALLA</span>
                 {kanduallaChallenge.game_lists?.title}
-                {kanduallaChallenge.game_lists?.subtitle && (
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                    {kanduallaChallenge.game_lists.subtitle}
-                  </div>
-                )}
               </a>
             )}
             {kartanChallenge && (
-              <a
-                href={`/kartan?paket=${kartanChallenge.paket_id}`}
-                className="plaque"
-                style={{ textAlign: 'left', border: '1px solid var(--amber)' }}
-              >
+              <a href={`/kartan?paket=${kartanChallenge.paket_id}`} className="plaque" style={{ border: '1px solid var(--amber)' }}>
                 <span className="tag">KARTAN</span>
                 {kartanChallenge.kartan_paket?.namn}
               </a>
@@ -151,7 +169,7 @@ export default function Hub() {
       )}
 
       {loggedIn && !hasPaidAccess && (
-        <div className="upgrade-card" style={{ marginBottom: 36 }}>
+        <div className="upgrade-card" style={{ marginBottom: 32 }}>
           <span className="upgrade-badge">Medlemskap</span>
           <div className="upgrade-title">Dagens utmaningar väntar</div>
           <p className="subhead" style={{ marginBottom: 14 }}>
@@ -163,7 +181,62 @@ export default function Hub() {
         </div>
       )}
 
-      <p className="subhead" style={{ marginBottom: 14 }}>Spelen</p>
+      {/* --- Synligt skyltfönster: KanDuAlla:s featured-spel, grupperat per kategori --- */}
+      {categories.map((cat) => {
+        const catLists = featuredLists.filter((l) => l.category_id === cat.id);
+        if (catLists.length === 0) return null;
+        return (
+          <div key={cat.id}>
+            <div className="cat-title">{cat.name} <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'none', letterSpacing: 0 }}>· Kan Du Alla</span></div>
+            <div className="list-grid" style={{ marginBottom: 18 }}>
+              {catLists.map((l) => (
+                <a key={l.id} className="plaque" href={`/play/${l.slug}`}>
+                  <span className="tag">{cat.name}</span>
+                  {l.title}
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* --- Synligt skyltfönster: Kartans gratispaket --- */}
+      {frittKartanPaket.length > 0 && (
+        <div>
+          <div className="cat-title">Kartan <span style={{ fontSize: 11, color: 'var(--muted)', textTransform: 'none', letterSpacing: 0 }}>· gratis att testa</span></div>
+          <div className="list-grid" style={{ marginBottom: 18 }}>
+            {frittKartanPaket.map((p) => (
+              <a key={p.id} href={`/kartan?paket=${p.id}`} className="plaque">
+                <span className="tag">KARTAN</span>
+                {p.namn}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* --- Medlemsspel: bara för inloggade, oavsett betalstatus (samma som KanDuAlla:s befintliga mönster — synligt om inloggad, faktiskt spelbart avgörs inne på respektive spelsida) --- */}
+      {loggedIn && (memberLists.length > 0 || medlemsKartanPaket.length > 0) && (
+        <>
+          <div className="cat-title">Medlemsspel</div>
+          <div className="list-grid" style={{ marginBottom: 28 }}>
+            {memberLists.map((l) => (
+              <a key={l.id} className="plaque" href={`/play/${l.slug}`}>
+                <span className="tag">KAN DU ALLA</span>
+                {l.title}
+              </a>
+            ))}
+            {medlemsKartanPaket.map((p) => (
+              <a key={p.id} href={`/kartan?paket=${p.id}`} className="plaque">
+                <span className="tag">KARTAN</span>
+                {p.namn}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+
+      <p className="subhead" style={{ margin: '28px 0 14px' }}>Utforska allt i respektive spel</p>
       <div className="game-grid">
         <a href="/kandualla" className="game-card game-card-kandualla">
           <span className="game-card-eyebrow">SKRIV · GISSA · FYLL LISTAN</span>
@@ -176,12 +249,6 @@ export default function Hub() {
           <span className="game-card-desc">Hitta rätt kommun eller pricka exakt plats på kartan — hur nära kommer du?</span>
         </a>
       </div>
-
-      {!loggedIn && (
-        <p className="subhead" style={{ textAlign: 'center', marginTop: 8 }}>
-          Båda spelen har gratis smakprov — inget konto behövs för att testa.
-        </p>
-      )}
 
       <p style={{ textAlign: 'center', marginTop: 40, fontSize: 13, color: 'var(--muted)' }}>
         {loggedIn ? (
