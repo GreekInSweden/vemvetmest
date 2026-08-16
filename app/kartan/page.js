@@ -68,7 +68,8 @@ function KartanPageContent() {
       const { data: sessionData } = await supabase.auth.getSession();
       const uid = sessionData.session ? sessionData.session.user.id : null;
 
-      let isAdminNow = false;
+      let isAdminNow = false; // strikt: bara riktig admin, kringgår betalning/lansering
+      let showAdminLink = false; // admin ELLER semi-admin: bara för att visa Admin-länken
 
       if (uid) {
         setUserId(uid);
@@ -76,13 +77,14 @@ function KartanPageContent() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('username, paid_until, is_admin')
+          .select('username, paid_until, is_admin, is_semi_admin')
           .eq('id', uid)
           .single();
 
         setUsername(profile?.username || '');
         isAdminNow = !!profile?.is_admin;
-        setIsAdmin(isAdminNow);
+        showAdminLink = isAdminNow || !!profile?.is_semi_admin;
+        setIsAdmin(showAdminLink);
 
         const today = ymd(stockholmNow());
         setHasPaidAccess(isAdminNow || (!!profile?.paid_until && profile.paid_until >= today));
