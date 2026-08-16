@@ -26,9 +26,7 @@ function LaunchCountdownScreen({ launchAt }) {
   return (
     <div className="wrap">
       <div className="topbar">
-        <a className="btn btn-ghost" href="/">
-          &larr; Alla spel
-        </a>
+        <a className="btn btn-ghost" href="/">&larr; Alla spel</a>
       </div>
       <div className="upgrade-card">
         <span className="upgrade-badge">Lanseras snart</span>
@@ -36,9 +34,6 @@ function LaunchCountdownScreen({ launchAt }) {
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 36, color: 'var(--amber-glow)', margin: '10px 0 18px' }}>
           {remaining ? formatCountdown(remaining) : '00:00'}
         </div>
-        <p className="subhead">
-          Du är redan medlem — så fort klockan slår noll öppnas Kartan automatiskt, ingen ny åtgärd behövs från dig.
-        </p>
       </div>
     </div>
   );
@@ -48,20 +43,13 @@ function KartanPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [userId, setUserId] = useState(null);
+  const [loggedIn, setLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasPaidAccess, setHasPaidAccess] = useState(false);
   const [launchAt, setLaunchAt] = useState(null);
   const [checking, setChecking] = useState(true);
   const [aktivtPaketId, setAktivtPaketId] = useState(null);
-
-  // Länk direkt in i ett specifikt paket (t.ex. "dagens Kartan-utmaning"
-  // från hub-sidan): /kartan?paket=<id> väljer det paketet automatiskt,
-  // så länge det faktiskt är publicerat och listat.
-  useEffect(() => {
-    const paketFranUrl = searchParams.get('paket');
-    if (paketFranUrl) setAktivtPaketId(paketFranUrl);
-  }, [searchParams]);
 
   const { paket, loading: paketLoading } = usePubliceradePaket();
 
@@ -71,32 +59,38 @@ function KartanPageContent() {
   }
 
   useEffect(() => {
+    const paketFranUrl = searchParams.get('paket');
+    if (paketFranUrl) setAktivtPaketId(paketFranUrl);
+  }, [searchParams]);
+
+  useEffect(() => {
     async function checkAccess() {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        router.push('/login');
-        return;
+      const uid = sessionData.session ? sessionData.session.user.id : null;
+
+      let isAdminNow = false;
+
+      if (uid) {
+        setUserId(uid);
+        setLoggedIn(true);
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username, paid_until, is_admin')
+          .eq('id', uid)
+          .single();
+
+        setUsername(profile?.username || '');
+        isAdminNow = !!profile?.is_admin;
+        setIsAdmin(isAdminNow);
+
+        const today = ymd(stockholmNow());
+        setHasPaidAccess(isAdminNow || (!!profile?.paid_until && profile.paid_until >= today));
       }
-      const uid = sessionData.session.user.id;
-      setUserId(uid);
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('username, paid_until, is_admin')
-        .eq('id', uid)
-        .single();
-
-      setUsername(profile?.username || '');
-      setIsAdmin(!!profile?.is_admin);
-
-      const today = ymd(stockholmNow());
-      const paidAccess = !!profile?.is_admin || (!!profile?.paid_until && profile.paid_until >= today);
-      setHasPaidAccess(paidAccess);
-
-      // Lanseringsnedräkning: gäller HELA Kartan, oavsett om enskilda
-      // paket är gratis eller ej — inget ska synas före lansering.
-      // Admin kommer alltid förbi.
-      if (!profile?.is_admin) {
+      // Lanseringsnedräkning: gäller alla (utom admin), inloggad eller
+      // ej — inget ska synas, gratis eller ej, före lansering.
+      if (!isAdminNow) {
         const { data: settingsRow } = await supabase
           .from('app_settings')
           .select('kartan_launch_at')
@@ -111,7 +105,18 @@ function KartanPageContent() {
     }
 
     checkAccess();
-  }, [router]);
+  }, []);
+
+  function valjPaket(paketId, kraverMedlemskap) {
+    if (!loggedIn) {
+      router.push('/login');
+      return;
+    }
+    if (kraverMedlemskap && !hasPaidAccess) {
+      return; // knappen är redan inaktiverad i UI:t, dubbelkoll här
+    }
+    setAktivtPaketId(paketId);
+  }
 
   if (checking) {
     return (
@@ -126,7 +131,7 @@ function KartanPageContent() {
   }
 
   const aktivtPaket = paket.find((p) => p.id === aktivtPaketId);
-  const aktivtPaketLast = aktivtPaket && (!aktivtPaket.kraver_medlemskap || hasPaidAccess);
+  const aktivtPaketLast = aktivtPaket && loggedIn && (!aktivtPaket.kraver_medlemskap || hasPaidAccess);
   const aktivtPaketViewBounds =
     aktivtPaket?.vy_lat_min != null
       ? {
@@ -143,15 +148,29 @@ function KartanPageContent() {
   return (
     <div className="wrap">
       <div className="topbar">
-        <div className="user">Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b></div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <a className="btn btn-ghost" href="/">Alla spel</a>
-          <a className="btn btn-ghost" href="/profil">Min profil</a>
-          <a className="btn btn-ghost" href="/kartan">Kartan</a>
-          <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
-          {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
-          <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
-        </div>
+        {loggedIn ? (
+          <>
+            <div className="user">
+              Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <a className="btn btn-ghost" href="/">Alla spel</a>
+              <a className="btn btn-ghost" href="/profil">Min profil</a>
+              <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
+              {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
+              <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="user">Testa gratispaketen nedan — inget konto behövs för att titta</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <a className="btn btn-ghost" href="/">Alla spel</a>
+              <a className="btn btn-ghost" href="/login">Logga in</a>
+              <a className="btn btn-primary" style={{ width: 'auto' }} href="/signup">Skapa konto</a>
+            </div>
+          </>
+        )}
       </div>
 
       <p className="eyebrow" style={{ marginTop: 20 }}>KAN DU ALLA</p>
@@ -182,7 +201,7 @@ function KartanPageContent() {
                 {frittPaket.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => setAktivtPaketId(p.id)}
+                    onClick={() => valjPaket(p.id, false)}
                     className="plaque"
                     style={{ textAlign: 'left', width: '100%', border: '1px solid var(--line)' }}
                   >
@@ -204,7 +223,7 @@ function KartanPageContent() {
                   hasPaidAccess ? (
                     <button
                       key={p.id}
-                      onClick={() => setAktivtPaketId(p.id)}
+                      onClick={() => valjPaket(p.id, true)}
                       className="plaque"
                       style={{ textAlign: 'left', width: '100%', border: '1px solid var(--line)' }}
                     >
@@ -215,14 +234,7 @@ function KartanPageContent() {
                     <div
                       key={p.id}
                       className="plaque"
-                      style={{
-                        textAlign: 'left',
-                        width: '100%',
-                        border: '1px solid var(--line)',
-                        opacity: 0.55,
-                        cursor: 'not-allowed',
-                        position: 'relative',
-                      }}
+                      style={{ textAlign: 'left', width: '100%', border: '1px solid var(--line)', opacity: 0.55, cursor: 'not-allowed' }}
                     >
                       <span className="tag">🔒 MEDLEM</span>
                       {p.namn}
@@ -233,10 +245,10 @@ function KartanPageContent() {
               {!hasPaidAccess && (
                 <a
                   className="btn btn-primary"
-                  href="/prenumerera"
+                  href={loggedIn ? '/prenumerera' : '/signup'}
                   style={{ display: 'inline-block', width: 'auto', marginTop: 16 }}
                 >
-                  Bli medlem för att låsa upp allt
+                  {loggedIn ? 'Bli medlem för att låsa upp allt' : 'Skapa konto för att bli medlem'}
                 </a>
               )}
             </>

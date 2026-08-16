@@ -15,6 +15,7 @@ function ymd(d) {
 export default function Hub() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasPaidAccess, setHasPaidAccess] = useState(false);
@@ -30,11 +31,17 @@ export default function Hub() {
   useEffect(() => {
     async function load() {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        router.push('/login');
+      const uid = sessionData.session ? sessionData.session.user.id : null;
+
+      if (!uid) {
+        // Publik vy — ingen inloggning krävs för att se vad sajten
+        // erbjuder, precis som KanDuAlla:s ursprungliga förstasida.
+        setLoggedIn(false);
+        setLoading(false);
         return;
       }
-      const uid = sessionData.session.user.id;
+
+      setLoggedIn(true);
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -82,15 +89,27 @@ export default function Hub() {
   return (
     <div className="wrap">
       <div className="topbar">
-        <div className="user">
-          Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <a className="btn btn-ghost" href="/profil">Min profil</a>
-          <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
-          {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
-          <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
-        </div>
+        {loggedIn ? (
+          <>
+            <div className="user">
+              Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <a className="btn btn-ghost" href="/profil">Min profil</a>
+              <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
+              {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
+              <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="user">Testa gratisspelen nedan — inget konto behövs</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <a className="btn btn-ghost" href="/login">Logga in</a>
+              <a className="btn btn-primary" style={{ width: 'auto' }} href="/signup">Skapa konto</a>
+            </div>
+          </>
+        )}
       </div>
 
       <h1 className="brand" style={{ marginTop: 24 }}>Kan Du Alla</h1>
@@ -98,41 +117,41 @@ export default function Hub() {
         Spelen som utmanar dig och dina vänner
       </p>
 
-      {hasPaidAccess ? (
-        (kanduallaChallenge || kartanChallenge) && (
-          <div style={{ marginTop: 28, marginBottom: 36 }}>
-            <p className="subhead" style={{ marginBottom: 10 }}>Dagens utmaningar</p>
-            <div className="list-grid">
-              {kanduallaChallenge && (
-                <a
-                  href={`/daily/${kanduallaChallenge.id}`}
-                  className="plaque"
-                  style={{ textAlign: 'left', border: '1px solid var(--amber)' }}
-                >
-                  <span className="tag">KAN DU ALLA</span>
-                  {kanduallaChallenge.game_lists?.title}
-                  {kanduallaChallenge.game_lists?.subtitle && (
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                      {kanduallaChallenge.game_lists.subtitle}
-                    </div>
-                  )}
-                </a>
-              )}
-              {kartanChallenge && (
-                <a
-                  href={`/kartan?paket=${kartanChallenge.paket_id}`}
-                  className="plaque"
-                  style={{ textAlign: 'left', border: '1px solid var(--amber)' }}
-                >
-                  <span className="tag">KARTAN</span>
-                  {kartanChallenge.kartan_paket?.namn}
-                </a>
-              )}
-            </div>
+      {loggedIn && hasPaidAccess && (kanduallaChallenge || kartanChallenge) && (
+        <div style={{ marginBottom: 36 }}>
+          <p className="subhead" style={{ marginBottom: 10 }}>Dagens utmaningar</p>
+          <div className="list-grid">
+            {kanduallaChallenge && (
+              <a
+                href={`/daily/${kanduallaChallenge.id}`}
+                className="plaque"
+                style={{ textAlign: 'left', border: '1px solid var(--amber)' }}
+              >
+                <span className="tag">KAN DU ALLA</span>
+                {kanduallaChallenge.game_lists?.title}
+                {kanduallaChallenge.game_lists?.subtitle && (
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                    {kanduallaChallenge.game_lists.subtitle}
+                  </div>
+                )}
+              </a>
+            )}
+            {kartanChallenge && (
+              <a
+                href={`/kartan?paket=${kartanChallenge.paket_id}`}
+                className="plaque"
+                style={{ textAlign: 'left', border: '1px solid var(--amber)' }}
+              >
+                <span className="tag">KARTAN</span>
+                {kartanChallenge.kartan_paket?.namn}
+              </a>
+            )}
           </div>
-        )
-      ) : (
-        <div className="upgrade-card" style={{ marginTop: 28, marginBottom: 36 }}>
+        </div>
+      )}
+
+      {loggedIn && !hasPaidAccess && (
+        <div className="upgrade-card" style={{ marginBottom: 36 }}>
           <span className="upgrade-badge">Medlemskap</span>
           <div className="upgrade-title">Dagens utmaningar väntar</div>
           <p className="subhead" style={{ marginBottom: 14 }}>
@@ -158,8 +177,18 @@ export default function Hub() {
         </a>
       </div>
 
+      {!loggedIn && (
+        <p className="subhead" style={{ textAlign: 'center', marginTop: 8 }}>
+          Båda spelen har gratis smakprov — inget konto behövs för att testa.
+        </p>
+      )}
+
       <p style={{ textAlign: 'center', marginTop: 40, fontSize: 13, color: 'var(--muted)' }}>
-        Vill du skapa eller gå med i en liga? Det gör du under <a href="/profil" style={{ color: 'var(--amber-glow)' }}>Min profil</a>.
+        {loggedIn ? (
+          <>Vill du skapa eller gå med i en liga? Det gör du under <a href="/profil" style={{ color: 'var(--amber-glow)' }}>Min profil</a>.</>
+        ) : (
+          <>Redan medlem? <a href="/login" style={{ color: 'var(--amber-glow)' }}>Logga in</a>.</>
+        )}
       </p>
       <p style={{ textAlign: 'center', marginTop: 10, fontSize: 12, color: 'var(--muted)' }}>
         <a href="/villkor" style={{ color: 'var(--muted)' }}>Villkor</a> ·{' '}
