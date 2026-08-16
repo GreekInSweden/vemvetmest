@@ -76,12 +76,12 @@ export default function Hub() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('username, is_admin, paid_until')
+        .select('username, is_admin, is_semi_admin, paid_until')
         .eq('id', uid)
         .single();
 
       setUsername(profile?.username || '');
-      setIsAdmin(!!profile?.is_admin);
+      setIsAdmin(!!profile?.is_admin || !!profile?.is_semi_admin);
 
       const today = ymd(stockholmNow());
       const paidAccess = !!profile?.is_admin || (!!profile?.paid_until && profile.paid_until >= today);
