@@ -174,9 +174,18 @@ export default function KompassPage() {
         </div>
       ) : (
         <div className={styles.gameWrap}>
-          <p className={styles.progress}>
-            {aktuelltLand?.namn} → {resultat ? resultat.facit.tillNamn : malLand?.namn}
-          </p>
+          <div className={styles.statusRad}>
+            <span>
+              <span className={styles.statusLabel}>Vi står:</span>
+              <span className={styles.statusVarde}>{aktuelltLand?.namn}</span>
+            </span>
+            <span>
+              <span className={styles.statusLabel}>Vi ska till:</span>
+              <span className={`${styles.statusVarde} ${styles.statusVardeMal}`}>
+                {resultat ? resultat.facit.tillNamn : malLand?.namn}
+              </span>
+            </span>
+          </div>
           <p className={styles.malText}>Peka mot</p>
           <p className={styles.malNamn}>{malLand?.namn}</p>
 
