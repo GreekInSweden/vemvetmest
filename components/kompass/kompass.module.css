@@ -52,6 +52,69 @@
   fill: var(--text);
 }
 
+/* --- Världskartan --- */
+
+.varldskarta {
+  width: 100%;
+  max-width: 420px;
+  display: block;
+  margin: 0 auto;
+  background: var(--bg-2, #0a1712);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.kartaLoading {
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 2 / 1;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  background: var(--bg-2, #0a1712);
+  border-radius: 8px;
+}
+
+.land {
+  fill: var(--panel);
+  stroke: var(--line);
+  stroke-width: 0.4;
+}
+
+.aktuellPrick {
+  fill: var(--amber-glow);
+  stroke: var(--bg-2, #0a1712);
+  stroke-width: 1;
+}
+
+.aktuellPing {
+  fill: none;
+  stroke: var(--amber-glow);
+  stroke-width: 1;
+  animation: kompassPing 1.6s ease-out infinite;
+}
+
+.malPrick {
+  fill: #7ed321;
+  stroke: var(--bg-2, #0a1712);
+  stroke-width: 1;
+}
+
+.pilLinje {
+  stroke: #7ed321;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+}
+
+@keyframes kompassPing {
+  0% { r: 4; opacity: 0.9; }
+  100% { r: 14; opacity: 0; }
+}
+
 .gameWrap {
   display: flex;
   flex-direction: column;
