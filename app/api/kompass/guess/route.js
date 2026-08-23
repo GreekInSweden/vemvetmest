@@ -124,7 +124,7 @@ export async function POST(request) {
     rattVinkel,
     avvikelse,
     beredd: bredd,
-    facit: { franNamn: franLand.namn, tillNamn: tillLand.namn },
+    facit: { franNamn: franLand.namn, tillNamn: tillLand.namn, tillIso2: tillLand.iso2 },
     totalPoang: nyTotalPoang,
     antalTraffar: nyaTraffar,
     stegNummer,
