@@ -56,6 +56,7 @@
 
 .varldskarta {
   width: 100%;
+  aspect-ratio: 2 / 1;
   display: block;
   margin: 0 auto;
   background: var(--bg-2, #0a1712);
