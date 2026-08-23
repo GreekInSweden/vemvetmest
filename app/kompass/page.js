@@ -176,40 +176,47 @@ export default function KompassPage() {
           <p className={styles.progress}>
             {aktuelltLand?.namn} → {resultat ? resultat.facit.tillNamn : malLand?.namn}
           </p>
-          <p className={styles.malText}>Peka mot</p>
-          <p className={styles.malNamn}>{malLand?.namn}</p>
 
-          <VarldsKarta
-            aktuell={punktFor(aktuelltLand)}
-            mal={resultat ? punktFor({ iso2: resultat.facit.tillIso2, namn: resultat.facit.tillNamn }) : null}
-            revealed={!!resultat}
-          />
-
-          <KompassRatt
-            bredd={bredd}
-            vinkel={vinkel}
-            onVinkelChange={setVinkel}
-            revealed={!!resultat}
-            rattVinkel={resultat?.rattVinkel ?? null}
-            traff={resultat?.traff ?? null}
-            disabled={submitting}
-          />
-
-          {!resultat ? (
-            <button className={styles.confirmBtn} disabled={vinkel === null || submitting} onClick={skickaGissning}>
-              Bekräfta riktning
-            </button>
-          ) : (
-            <div className={styles.resultBlock}>
-              <p className={resultat.traff ? styles.resultHit : styles.resultMiss}>
-                {resultat.traff ? `Träff! +${resultat.poang}p` : 'Utanför konen'}
-              </p>
-              <p className="subhead">{Math.round(resultat.avvikelse)}° avvikelse</p>
-              <button className={styles.secondaryBtn} onClick={nastaSteg}>
-                Nästa land →
-              </button>
+          <div className={styles.gameLayout}>
+            <div className={styles.mapSide}>
+              <VarldsKarta
+                aktuell={punktFor(aktuelltLand)}
+                mal={resultat ? punktFor({ iso2: resultat.facit.tillIso2, namn: resultat.facit.tillNamn }) : null}
+                revealed={!!resultat}
+              />
             </div>
-          )}
+
+            <div className={styles.compassSide}>
+              <p className={styles.malText}>Peka mot</p>
+              <p className={styles.malNamn}>{malLand?.namn}</p>
+
+              <KompassRatt
+                bredd={bredd}
+                vinkel={vinkel}
+                onVinkelChange={setVinkel}
+                revealed={!!resultat}
+                rattVinkel={resultat?.rattVinkel ?? null}
+                traff={resultat?.traff ?? null}
+                disabled={submitting}
+              />
+
+              {!resultat ? (
+                <button className={styles.confirmBtn} disabled={vinkel === null || submitting} onClick={skickaGissning}>
+                  Bekräfta riktning
+                </button>
+              ) : (
+                <div className={styles.resultBlock}>
+                  <p className={resultat.traff ? styles.resultHit : styles.resultMiss}>
+                    {resultat.traff ? `Träff! +${resultat.poang}p` : 'Utanför konen'}
+                  </p>
+                  <p className="subhead">{Math.round(resultat.avvikelse)}° avvikelse</p>
+                  <button className={styles.secondaryBtn} onClick={nastaSteg}>
+                    Nästa land →
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
