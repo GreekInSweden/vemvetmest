@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import { KompassRatt } from '../../components/kompass/KompassRatt';
+import { VarldsKarta } from '../../components/kompass/VarldsKarta';
 import styles from '../../components/kompass/kompass.module.css';
 
 async function authedFetch(url, body) {
@@ -37,6 +38,31 @@ export default function KompassPage() {
   const [slutresultat, setSlutresultat] = useState(null);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [landerLookup, setLanderLookup] = useState(null);
+
+  useEffect(() => {
+    fetch('/data/kompass/lander.json')
+      .then((r) => r.json())
+      .then((data) => {
+        const lookup = {};
+        data.forEach((l) => {
+          lookup[l.iso2] = l;
+        });
+        setLanderLookup(lookup);
+      });
+  }, []);
+
+  function punktFor(land) {
+    if (!land || !landerLookup) return null;
+    const rad = landerLookup[land.iso2];
+    if (!rad) return null;
+    const anvandHuvudstad = lage?.kategori === 'huvudstader';
+    return {
+      namn: land.namn,
+      lat: anvandHuvudstad ? rad.capitalLat : rad.countryLat,
+      lon: anvandHuvudstad ? rad.capitalLon : rad.countryLon,
+    };
+  }
 
   useEffect(() => {
     async function init() {
@@ -87,7 +113,7 @@ export default function KompassPage() {
   }
 
   function nastaSteg() {
-    setAktuelltLand({ iso2: resultat.nastaMal.iso2, namn: resultat.facit.tillNamn });
+    setAktuelltLand({ iso2: resultat.facit.tillIso2, namn: resultat.facit.tillNamn });
     setMalLand(resultat.nastaMal);
     setBredd(resultat.nastaBredd);
     setVinkel(null);
@@ -152,6 +178,12 @@ export default function KompassPage() {
           </p>
           <p className={styles.malText}>Peka mot</p>
           <p className={styles.malNamn}>{malLand?.namn}</p>
+
+          <VarldsKarta
+            aktuell={punktFor(aktuelltLand)}
+            mal={resultat ? punktFor({ iso2: resultat.facit.tillIso2, namn: resultat.facit.tillNamn }) : null}
+            revealed={!!resultat}
+          />
 
           <KompassRatt
             bredd={bredd}
