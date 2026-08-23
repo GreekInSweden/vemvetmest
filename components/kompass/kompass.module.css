@@ -1,0 +1,123 @@
+.ratt {
+  width: 100%;
+  max-width: 320px;
+  display: block;
+  margin: 0 auto;
+}
+
+.rattBakgrund {
+  fill: var(--panel);
+  stroke: var(--line);
+  stroke-width: 1.5;
+}
+
+.vaderstreck {
+  font-family: 'Oswald', sans-serif;
+  font-size: 16px;
+  fill: var(--muted);
+}
+
+.konYta {
+  fill: rgba(232, 163, 61, 0.35);
+  stroke: var(--amber);
+  stroke-width: 1;
+}
+
+.konYtaTraff {
+  fill: rgba(126, 211, 33, 0.3);
+  stroke: #7ed321;
+  stroke-width: 1.5;
+}
+
+.konYtaMiss {
+  fill: rgba(232, 163, 61, 0.15);
+  stroke: var(--amber);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.nal {
+  stroke: var(--amber-glow);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.rattLinje {
+  stroke: #7ed321;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.centrumPrick {
+  fill: var(--text);
+}
+
+.gameWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 10px 0 40px;
+}
+
+.progress {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.malText {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: .1em;
+  color: var(--muted);
+}
+
+.malNamn {
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.confirmBtn {
+  border-radius: 999px;
+  border: none;
+  background: var(--amber);
+  color: #241505;
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 32px;
+  cursor: pointer;
+}
+.confirmBtn:disabled { opacity: .4; cursor: not-allowed; }
+
+.resultBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.resultHit { color: #7ed321; font-weight: 600; font-size: 18px; }
+.resultMiss { color: #e78a6c; font-weight: 600; font-size: 18px; }
+
+.secondaryBtn {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  font-family: 'Oswald', sans-serif;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 24px;
+  cursor: pointer;
+}
+.secondaryBtn:hover { border-color: var(--amber); }
