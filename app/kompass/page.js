@@ -102,9 +102,6 @@ export default function KompassPage() {
     try {
       const data = await authedFetch('/api/kompass/guess', { partiId, valdVinkel: vinkel });
       setResultat(data);
-      if (data.partietSlut) {
-        setSlutresultat(data);
-      }
     } catch (e) {
       setError(e.message);
     } finally {
@@ -113,6 +110,10 @@ export default function KompassPage() {
   }
 
   function nastaSteg() {
+    if (resultat.partietSlut) {
+      setSlutresultat(resultat);
+      return;
+    }
     setAktuelltLand({ iso2: resultat.facit.tillIso2, namn: resultat.facit.tillNamn });
     setMalLand(resultat.nastaMal);
     setBredd(resultat.nastaBredd);
@@ -176,6 +177,8 @@ export default function KompassPage() {
           <p className={styles.progress}>
             {aktuelltLand?.namn} → {resultat ? resultat.facit.tillNamn : malLand?.namn}
           </p>
+          <p className={styles.malText}>Peka mot</p>
+          <p className={styles.malNamn}>{malLand?.namn}</p>
 
           <div className={styles.gameLayout}>
             <div className={styles.mapSide}>
@@ -187,9 +190,6 @@ export default function KompassPage() {
             </div>
 
             <div className={styles.compassSide}>
-              <p className={styles.malText}>Peka mot</p>
-              <p className={styles.malNamn}>{malLand?.namn}</p>
-
               <KompassRatt
                 bredd={bredd}
                 vinkel={vinkel}
@@ -211,7 +211,7 @@ export default function KompassPage() {
                   </p>
                   <p className="subhead">{Math.round(resultat.avvikelse)}° avvikelse</p>
                   <button className={styles.secondaryBtn} onClick={nastaSteg}>
-                    Nästa land →
+                    {resultat.partietSlut ? 'Se slutresultat →' : 'Nästa land →'}
                   </button>
                 </div>
               )}
