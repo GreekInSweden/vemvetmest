@@ -23,7 +23,7 @@ export async function POST(request) {
 
   const { data: alla_rundor } = await supabase
     .from('party_rundor')
-    .select('id, ordning')
+    .select('id, ordning, typ')
     .eq('party_id', partyId)
     .order('ordning');
 
@@ -34,20 +34,26 @@ export async function POST(request) {
     return Response.json({ avslutat: true });
   }
 
+  // Backfylla noll poäng för alla som inte svarade — gäller bara enkla
+  // textrundor (party_svar). Listrundor (party_lista_gissningar) har
+  // redan ett naturligt "resultat" per deltagare, oavsett hur många de
+  // hann med — inget att backfylla där.
   if (party.status === 'aktiv') {
     const foregaendeRunda = alla_rundor[party.aktuell_runda_index];
-    const { data: deltagare } = await supabase.from('party_deltagare').select('id').eq('party_id', partyId);
-    const { data: redanSvarat } = await supabase
-      .from('party_svar')
-      .select('deltagare_id')
-      .eq('runda_id', foregaendeRunda.id);
-    const svaratSet = new Set((redanSvarat || []).map((s) => s.deltagare_id));
-    const saknas = (deltagare || []).filter((d) => !svaratSet.has(d.id));
+    if (foregaendeRunda.typ === 'text') {
+      const { data: deltagare } = await supabase.from('party_deltagare').select('id').eq('party_id', partyId);
+      const { data: redanSvarat } = await supabase
+        .from('party_svar')
+        .select('deltagare_id')
+        .eq('runda_id', foregaendeRunda.id);
+      const svaratSet = new Set((redanSvarat || []).map((s) => s.deltagare_id));
+      const saknas = (deltagare || []).filter((d) => !svaratSet.has(d.id));
 
-    if (saknas.length > 0) {
-      await supabase.from('party_svar').insert(
-        saknas.map((d) => ({ runda_id: foregaendeRunda.id, deltagare_id: d.id, svar: null, ratt: false, poang: 0 }))
-      );
+      if (saknas.length > 0) {
+        await supabase.from('party_svar').insert(
+          saknas.map((d) => ({ runda_id: foregaendeRunda.id, deltagare_id: d.id, svar: null, ratt: false, poang: 0 }))
+        );
+      }
     }
   }
 

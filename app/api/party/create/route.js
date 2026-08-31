@@ -38,9 +38,11 @@ export async function POST(request) {
   const rundorRows = rundor.map((r, i) => ({
     party_id: party.id,
     ordning: i,
-    fraga: r.fraga,
-    ratt_svar: r.rattSvar,
-    tidsgrans_sekunder: r.tidsgransSekunder || 20,
+    typ: r.typ || 'text',
+    fraga: r.typ === 'kanduallalista' ? null : r.fraga,
+    ratt_svar: r.typ === 'kanduallalista' ? null : r.rattSvar,
+    list_id: r.typ === 'kanduallalista' ? r.listId : null,
+    tidsgrans_sekunder: r.tidsgransSekunder || (r.typ === 'kanduallalista' ? 240 : 20),
   }));
 
   const { error: rundorError } = await supabase.from('party_rundor').insert(rundorRows);
