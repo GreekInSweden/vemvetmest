@@ -6,7 +6,7 @@ export async function POST(request) {
     return Response.json({ error: check.error }, { status: check.status });
   }
 
-  const { namn, rundor } = await request.json();
+  const { namn, rundor, ledareSmeknamn } = await request.json();
   if (!namn || !Array.isArray(rundor) || rundor.length === 0) {
     return Response.json({ error: 'namn och minst en runda krävs.' }, { status: 400 });
   }
@@ -46,6 +46,17 @@ export async function POST(request) {
   const { error: rundorError } = await supabase.from('party_rundor').insert(rundorRows);
   if (rundorError) {
     return Response.json({ error: rundorError.message }, { status: 500 });
+  }
+
+  // Ledaren läggs till som en riktig deltagare också — hen ska kunna
+  // gissa precis som alla andra, inte bara administrera.
+  const { error: ledareDeltagareError } = await supabase.from('party_deltagare').insert({
+    party_id: party.id,
+    spelare_id: check.userId,
+    smeknamn: ledareSmeknamn || 'Ledaren',
+  });
+  if (ledareDeltagareError) {
+    return Response.json({ error: ledareDeltagareError.message }, { status: 500 });
   }
 
   return Response.json({ partyId: party.id, kod: party.kod });
