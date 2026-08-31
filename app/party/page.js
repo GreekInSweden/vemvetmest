@@ -27,13 +27,20 @@ export default function PartyPage() {
   const [vy, setVy] = useState('valj');
   const [error, setError] = useState(null);
 
+  // Skapa-formulär
   const [nyttNamn, setNyttNamn] = useState('');
   const [ledareSmeknamn, setLedareSmeknamn] = useState('');
-  const [radtext, setRadtext] = useState('Vilken är Sveriges huvudstad?|Stockholm\nHur många hörn har en kub?|8');
+  const [radtext, setRadtext] = useState('');
+  const [allaListor, setAllaListor] = useState([]);
+  const [listSok, setListSok] = useState('');
+  const [valdaListor, setValdaListor] = useState([]); // [{id,title,subtitle}]
+  const [listaTidsgrans, setListaTidsgrans] = useState(240);
 
+  // Gå med-formulär
   const [inKod, setInKod] = useState('');
   const [smeknamn, setSmeknamn] = useState('');
 
+  // Aktivt party-tillstånd
   const [partyId, setPartyId] = useState(null);
   const [partyKod, setPartyKod] = useState(null);
   const [isLedare, setIsLedare] = useState(false);
@@ -45,6 +52,11 @@ export default function PartyPage() {
   const [harSvarat, setHarSvarat] = useState(false);
   const [mittResultat, setMittResultat] = useState(null);
   const [avslutat, setAvslutat] = useState(false);
+
+  // Listrunda-specifikt
+  const [hittadeItems, setHittadeItems] = useState([]); // [{rank,namn}]
+  const [listFel, setListFel] = useState(false);
+  const listInputRef = useRef(null);
 
   const channelRef = useRef(null);
 
@@ -58,6 +70,15 @@ export default function PartyPage() {
     });
   }, [router]);
 
+  useEffect(() => {
+    if (vy !== 'skapa') return;
+    supabase
+      .from('game_lists')
+      .select('id, title, subtitle')
+      .order('title')
+      .then(({ data }) => setAllaListor(data || []));
+  }, [vy]);
+
   async function hamtaDeltagare(pid) {
     const { data } = await supabase
       .from('party_deltagare')
@@ -70,15 +91,30 @@ export default function PartyPage() {
   async function hamtaRunda(pid, ordning, startadAt) {
     const { data } = await supabase
       .from('party_rundor_public')
-      .select('fraga, tidsgrans_sekunder')
+      .select('typ, list_id, fraga, tidsgrans_sekunder')
       .eq('party_id', pid)
       .eq('ordning', ordning)
       .single();
     if (data) {
-      setRunda({ ordning, fraga: data.fraga, tidsgransSekunder: data.tidsgrans_sekunder, startadAt });
+      let listTitel = null;
+      if (data.typ === 'kanduallalista') {
+        const { data: listRow } = await supabase.from('game_lists').select('title, subtitle').eq('id', data.list_id).single();
+        listTitel = listRow;
+      }
+      setRunda({
+        ordning,
+        typ: data.typ,
+        listId: data.list_id,
+        listTitel,
+        fraga: data.fraga,
+        tidsgransSekunder: data.tidsgrans_sekunder,
+        startadAt,
+      });
       setMittSvar('');
       setHarSvarat(false);
       setMittResultat(null);
+      setHittadeItems([]);
+      setListFel(false);
     }
   }
 
@@ -122,25 +158,47 @@ export default function PartyPage() {
     return () => clearInterval(iv);
   }, [runda]);
 
+  useEffect(() => {
+    if (runda?.typ === 'kanduallalista') listInputRef.current?.focus();
+  }, [runda, hittadeItems]);
+
+  function toggleValdList(list) {
+    setValdaListor((prev) =>
+      prev.some((l) => l.id === list.id) ? prev.filter((l) => l.id !== list.id) : [...prev, list]
+    );
+  }
+
   async function skapaParty() {
     setError(null);
-    const rundor = radtext
+    const textRundor = radtext
       .split('\n')
       .map((rad) => rad.trim())
       .filter(Boolean)
       .map((rad) => {
         const [fraga, rattSvar] = rad.split('|');
-        return { fraga: fraga?.trim(), rattSvar: rattSvar?.trim(), tidsgransSekunder: 20 };
+        return { typ: 'text', fraga: fraga?.trim(), rattSvar: rattSvar?.trim(), tidsgransSekunder: 20 };
       })
       .filter((r) => r.fraga && r.rattSvar);
 
+    const listRundor = valdaListor.map((l) => ({
+      typ: 'kanduallalista',
+      listId: l.id,
+      tidsgransSekunder: listaTidsgrans,
+    }));
+
+    const rundor = [...listRundor, ...textRundor];
+
     if (!nyttNamn || rundor.length === 0) {
-      setError('Namn och minst en giltig rad (fråga|svar) krävs.');
+      setError('Namn krävs, och minst en runda (välj en lista eller skriv en snabbfråga).');
       return;
     }
 
     try {
-      const data = await authedFetch('/api/party/create', { namn: nyttNamn, rundor, ledareSmeknamn: ledareSmeknamn || 'Ledaren' });
+      const data = await authedFetch('/api/party/create', {
+        namn: nyttNamn,
+        rundor,
+        ledareSmeknamn: ledareSmeknamn || 'Ledaren',
+      });
       setPartyId(data.partyId);
       setPartyKod(data.kod);
       setIsLedare(true);
@@ -191,6 +249,25 @@ export default function PartyPage() {
     }
   }
 
+  async function skickaListgissning(e) {
+    e.preventDefault();
+    if (!mittSvar.trim() || kvarSekunder === 0) return;
+    const gissning = mittSvar;
+    setMittSvar('');
+    try {
+      const result = await authedFetch('/api/party/lista-gissning', { partyId, guess: gissning });
+      if (result.correct) {
+        setHittadeItems((prev) => [...prev, ...result.matches].sort((a, b) => a.rank - b.rank));
+        setListFel(false);
+      } else {
+        setListFel(true);
+        setTimeout(() => setListFel(false), 400);
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   if (checking) {
     return (
       <div className="wrap">
@@ -198,6 +275,8 @@ export default function PartyPage() {
       </div>
     );
   }
+
+  const filtreradeListor = allaListor.filter((l) => l.title.toLowerCase().includes(listSok.toLowerCase()));
 
   return (
     <div className="wrap">
@@ -207,9 +286,6 @@ export default function PartyPage() {
 
       <p className="eyebrow" style={{ marginTop: 20 }}>KAN DU ALLA</p>
       <h1 className="brand">Party</h1>
-      <p className="subhead" style={{ marginBottom: 20 }}>
-        Tekniskt bevis-koncept — enkla testfrågor, riktigt spelinnehåll kopplas in senare.
-      </p>
 
       {error && <p style={{ color: '#e78a6c', fontSize: 13 }}>{error}</p>}
 
@@ -225,15 +301,44 @@ export default function PartyPage() {
       )}
 
       {vy === 'skapa' && (
-        <div className={styles.formBox}>
+        <div className={styles.formBox} style={{ maxWidth: 520 }}>
           <label className={styles.label}>Partyts namn</label>
           <input className={styles.input} value={nyttNamn} onChange={(e) => setNyttNamn(e.target.value)} />
           <label className={styles.label}>Ditt smeknamn (du gissar också)</label>
           <input className={styles.input} value={ledareSmeknamn} onChange={(e) => setLedareSmeknamn(e.target.value)} />
-          <label className={styles.label}>Frågor (en per rad, format: fråga|svar)</label>
-          <textarea className={styles.textarea} rows={6} value={radtext} onChange={(e) => setRadtext(e.target.value)} />
-          <button className="btn btn-primary" style={{ width: 'auto' }} onClick={skapaParty}>
-            Skapa
+
+          <p className={styles.sektionsrubrik}>KanDuAlla-listor</p>
+          <label className={styles.label}>Tidsgräns per lista (sekunder)</label>
+          <input
+            type="number"
+            className={styles.input}
+            value={listaTidsgrans}
+            onChange={(e) => setListaTidsgrans(Number(e.target.value))}
+          />
+          <input
+            className={styles.input}
+            placeholder="Sök lista…"
+            value={listSok}
+            onChange={(e) => setListSok(e.target.value)}
+          />
+          <div className={styles.listPicker}>
+            {filtreradeListor.map((l) => (
+              <label key={l.id} className={styles.listPickerRad}>
+                <input type="checkbox" checked={valdaListor.some((v) => v.id === l.id)} onChange={() => toggleValdList(l)} />
+                {l.title}
+              </label>
+            ))}
+          </div>
+          {valdaListor.length > 0 && (
+            <p className={styles.valdaCount}>{valdaListor.length} lista(or) valda</p>
+          )}
+
+          <p className={styles.sektionsrubrik}>Egna snabbfrågor (valfritt)</p>
+          <label className={styles.label}>En per rad, format: fråga|svar</label>
+          <textarea className={styles.textarea} rows={4} value={radtext} onChange={(e) => setRadtext(e.target.value)} />
+
+          <button className="btn btn-primary" style={{ width: 'auto', marginTop: 12 }} onClick={skapaParty}>
+            Skapa party
           </button>
         </div>
       )}
@@ -289,25 +394,57 @@ export default function PartyPage() {
           ) : runda ? (
             <>
               <p className={styles.timer}>{kvarSekunder}s</p>
-              <p className={styles.fraga}>{runda.fraga}</p>
 
-              {!harSvarat ? (
-                <div className={styles.guessRow}>
-                  <input
-                    className={styles.input}
-                    value={mittSvar}
-                    onChange={(e) => setMittSvar(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && skickaSvar()}
-                    disabled={kvarSekunder === 0}
-                  />
-                  <button className="btn btn-primary" style={{ width: 'auto' }} onClick={skickaSvar} disabled={kvarSekunder === 0}>
-                    Svara
-                  </button>
-                </div>
+              {runda.typ === 'kanduallalista' ? (
+                <>
+                  <p className={styles.fraga}>{runda.listTitel?.title}</p>
+                  {runda.listTitel?.subtitle && <p className="subhead">{runda.listTitel.subtitle}</p>}
+                  <p className={styles.progress}>{hittadeItems.length} hittade</p>
+
+                  <form onSubmit={skickaListgissning} className={`${styles.guessRow} ${listFel ? styles.shake : ''}`}>
+                    <input
+                      ref={listInputRef}
+                      className={styles.input}
+                      value={mittSvar}
+                      onChange={(e) => setMittSvar(e.target.value)}
+                      disabled={kvarSekunder === 0}
+                      autoComplete="off"
+                    />
+                    <button className="btn btn-primary" style={{ width: 'auto' }} disabled={kvarSekunder === 0}>
+                      Gissa
+                    </button>
+                  </form>
+
+                  <div className={styles.hittadeLista}>
+                    {hittadeItems.map((item) => (
+                      <span key={item.rank} className={styles.hittadChip}>
+                        #{item.rank} {item.name || item.namn}
+                      </span>
+                    ))}
+                  </div>
+                </>
               ) : (
-                <p className={mittResultat?.ratt ? styles.resultHit : styles.resultMiss}>
-                  {mittResultat ? (mittResultat.ratt ? `Rätt! +${mittResultat.poang}p` : 'Fel svar') : 'Svar skickat, väntar…'}
-                </p>
+                <>
+                  <p className={styles.fraga}>{runda.fraga}</p>
+                  {!harSvarat ? (
+                    <div className={styles.guessRow}>
+                      <input
+                        className={styles.input}
+                        value={mittSvar}
+                        onChange={(e) => setMittSvar(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && skickaSvar()}
+                        disabled={kvarSekunder === 0}
+                      />
+                      <button className="btn btn-primary" style={{ width: 'auto' }} onClick={skickaSvar} disabled={kvarSekunder === 0}>
+                        Svara
+                      </button>
+                    </div>
+                  ) : (
+                    <p className={mittResultat?.ratt ? styles.resultHit : styles.resultMiss}>
+                      {mittResultat ? (mittResultat.ratt ? `Rätt! +${mittResultat.poang}p` : 'Fel svar') : 'Svar skickat, väntar…'}
+                    </p>
+                  )}
+                </>
               )}
 
               <div className={styles.topplista}>

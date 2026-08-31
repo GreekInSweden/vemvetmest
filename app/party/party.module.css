@@ -101,3 +101,72 @@
   font-weight: 700;
   color: var(--amber-glow);
 }
+
+.sektionsrubrik {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin-top: 18px;
+  margin-bottom: 4px;
+}
+
+.listPicker {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px;
+  margin-top: 6px;
+}
+
+.listPickerRad {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.valdaCount {
+  font-size: 12px;
+  color: var(--amber-glow);
+  margin-top: 4px;
+}
+
+.progress {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.hittadeLista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.hittadChip {
+  background: var(--panel);
+  border: 1px solid #7ed321;
+  color: #7ed321;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.shake {
+  animation: partyShake 0.35s;
+}
+
+@keyframes partyShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
