@@ -28,6 +28,7 @@ export default function PartyPage() {
   const [error, setError] = useState(null);
 
   const [nyttNamn, setNyttNamn] = useState('');
+  const [ledareSmeknamn, setLedareSmeknamn] = useState('');
   const [radtext, setRadtext] = useState('Vilken är Sveriges huvudstad?|Stockholm\nHur många hörn har en kub?|8');
 
   const [inKod, setInKod] = useState('');
@@ -139,7 +140,7 @@ export default function PartyPage() {
     }
 
     try {
-      const data = await authedFetch('/api/party/create', { namn: nyttNamn, rundor });
+      const data = await authedFetch('/api/party/create', { namn: nyttNamn, rundor, ledareSmeknamn: ledareSmeknamn || 'Ledaren' });
       setPartyId(data.partyId);
       setPartyKod(data.kod);
       setIsLedare(true);
@@ -227,6 +228,8 @@ export default function PartyPage() {
         <div className={styles.formBox}>
           <label className={styles.label}>Partyts namn</label>
           <input className={styles.input} value={nyttNamn} onChange={(e) => setNyttNamn(e.target.value)} />
+          <label className={styles.label}>Ditt smeknamn (du gissar också)</label>
+          <input className={styles.input} value={ledareSmeknamn} onChange={(e) => setLedareSmeknamn(e.target.value)} />
           <label className={styles.label}>Frågor (en per rad, format: fråga|svar)</label>
           <textarea className={styles.textarea} rows={6} value={radtext} onChange={(e) => setRadtext(e.target.value)} />
           <button className="btn btn-primary" style={{ width: 'auto' }} onClick={skapaParty}>
