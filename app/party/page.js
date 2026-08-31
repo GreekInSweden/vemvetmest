@@ -55,6 +55,7 @@ export default function PartyPage() {
 
   // Listrunda-specifikt
   const [hittadeItems, setHittadeItems] = useState([]); // [{rank,namn}]
+  const [allaRanks, setAllaRanks] = useState([]); // [1,2,3...] — bara positioner, inga svar
   const [listFel, setListFel] = useState(false);
   const listInputRef = useRef(null);
 
@@ -97,9 +98,18 @@ export default function PartyPage() {
       .single();
     if (data) {
       let listTitel = null;
+      let ranks = [];
       if (data.typ === 'kanduallalista') {
         const { data: listRow } = await supabase.from('game_lists').select('title, subtitle').eq('id', data.list_id).single();
         listTitel = listRow;
+        // Bara positionsnumren, aldrig namn/värde — de förblir hemliga
+        // tills man faktiskt gissat rätt.
+        const { data: rankRows } = await supabase
+          .from('list_items')
+          .select('rank')
+          .eq('list_id', data.list_id)
+          .order('rank');
+        ranks = (rankRows || []).map((r) => r.rank);
       }
       setRunda({
         ordning,
@@ -110,6 +120,7 @@ export default function PartyPage() {
         tidsgransSekunder: data.tidsgrans_sekunder,
         startadAt,
       });
+      setAllaRanks(ranks);
       setMittSvar('');
       setHarSvarat(false);
       setMittResultat(null);
@@ -417,12 +428,22 @@ export default function PartyPage() {
                     </button>
                   </form>
 
-                  <div className={styles.hittadeLista}>
-                    {hittadeItems.map((item) => (
-                      <span key={item.rank} className={styles.hittadChip}>
-                        #{item.rank} {item.name || item.namn}
-                      </span>
-                    ))}
+                  <div className="board-list" style={{ marginTop: 10, maxHeight: 320, overflowY: 'auto' }}>
+                    {allaRanks.map((rank) => {
+                      const funnet = hittadeItems.find((item) => item.rank === rank);
+                      return (
+                        <div className="row" key={rank}>
+                          <div className="rank">{rank}</div>
+                          <div className={`flap ${funnet ? 'revealed' : ''}`}>
+                            {funnet ? (
+                              <span className="name">{funnet.name || funnet.namn}</span>
+                            ) : (
+                              <span className="placeholder">— — — — — —</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </>
               ) : (
