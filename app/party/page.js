@@ -74,7 +74,7 @@ export default function PartyPage() {
     if (vy !== 'skapa') return;
     supabase
       .from('game_lists')
-      .select('id, title, subtitle')
+      .select('id, title, subtitle, child_package, categories ( name )')
       .order('title')
       .then(({ data }) => setAllaListor(data || []));
   }, [vy]);
@@ -325,7 +325,9 @@ export default function PartyPage() {
             {filtreradeListor.map((l) => (
               <label key={l.id} className={styles.listPickerRad}>
                 <input type="checkbox" checked={valdaListor.some((v) => v.id === l.id)} onChange={() => toggleValdList(l)} />
-                {l.title}
+                <span className={styles.listPickerTitel}>{l.title}</span>
+                <span className={styles.listPickerKategori}>{l.categories?.name}</span>
+                {l.child_package && <span className={styles.barnMarkning}>BARN</span>}
               </label>
             ))}
           </div>
