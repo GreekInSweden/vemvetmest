@@ -3,6 +3,64 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../../lib/supabaseClient';
 
+const ALLA_ALDRAR = [6, 7, 8, 9, 10, 11, 12];
+
+function AlderKryssrutor({ g, listSetter, onSave }) {
+  const [valda, setValda] = useState(new Set(g.alder_lista || []));
+
+  function toggle(alder) {
+    const nya = new Set(valda);
+    if (nya.has(alder)) nya.delete(alder);
+    else nya.add(alder);
+    setValda(nya);
+    onSave(g.id, Array.from(nya).sort((a, b) => a - b), listSetter);
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexWrap: 'wrap' }}>
+      {ALLA_ALDRAR.map((alder) => (
+        <label
+          key={alder}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 22,
+            height: 22,
+            borderRadius: 4,
+            fontSize: 10,
+            fontFamily: "'JetBrains Mono', monospace",
+            cursor: 'pointer',
+            border: `1px solid ${valda.has(alder) ? 'var(--amber)' : 'var(--line)'}`,
+            background: valda.has(alder) ? 'rgba(232, 163, 61, 0.18)' : 'transparent',
+            color: valda.has(alder) ? 'var(--amber-glow)' : 'var(--muted)',
+          }}
+          title={`${alder} år`}
+        >
+          <input type="checkbox" checked={valda.has(alder)} onChange={() => toggle(alder)} style={{ display: 'none' }} />
+          {alder}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function TidsgransFalt({ g, listSetter, onSave }) {
+  const [varde, setVarde] = useState(g.time_limit_seconds ?? '');
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+      <input
+        type="number"
+        value={varde}
+        onChange={(e) => setVarde(e.target.value)}
+        onBlur={() => onSave(g.id, Number(varde), listSetter)}
+        style={{ width: 52, background: 'var(--bg-2, #0a1712)', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--text)', padding: '2px 4px', fontSize: 11 }}
+      />
+      <span style={{ color: 'var(--muted)' }}>sek</span>
+    </div>
+  );
+}
+
 export default function BarnpaketSpel() {
   const [loading, setLoading] = useState(true);
   const [untested, setUntested] = useState([]); // child_package=true, tested=false
@@ -18,7 +76,7 @@ export default function BarnpaketSpel() {
     setLoading(true);
     const { data } = await supabase
       .from('game_lists')
-      .select('id, slug, title, tested')
+      .select('id, slug, title, tested, alder_lista, time_limit_seconds')
       .eq('child_package', true)
       .order('title');
     const rows = data || [];
@@ -50,6 +108,21 @@ export default function BarnpaketSpel() {
       setUntested(prev => [...prev, { ...g, tested: false }].sort((a, b) => a.title.localeCompare(b.title)));
     }
     setMsg(`"${g.title}" markerat som ${value ? 'testat' : 'ej testat'}.`);
+  }
+
+  async function sparaAlder(id, alderLista, listSetter) {
+    const { error } = await supabase.from('game_lists').update({ alder_lista: alderLista }).eq('id', id);
+    if (error) { setMsg('Kunde inte spara ålder: ' + error.message); return; }
+    listSetter(prev => prev.map(g => g.id === id ? { ...g, alder_lista: alderLista } : g));
+    setMsg('Åldrar sparade.');
+  }
+
+  async function sparaTidsgrans(id, sekunder, listSetter) {
+    if (!sekunder || sekunder <= 0) return;
+    const { error } = await supabase.from('game_lists').update({ time_limit_seconds: sekunder }).eq('id', id);
+    if (error) { setMsg('Kunde inte spara tidsgräns: ' + error.message); return; }
+    listSetter(prev => prev.map(g => g.id === id ? { ...g, time_limit_seconds: sekunder } : g));
+    setMsg('Tidsgräns sparad.');
   }
 
   async function searchToAdd(e) {
@@ -98,6 +171,8 @@ export default function BarnpaketSpel() {
           {untested.map(g => (
             <div key={g.id} className="plaque" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderColor: '#888' }}>
               <span style={{ flex: '1 1 120px', minWidth: 0 }}>{g.title}</span>
+              <AlderKryssrutor g={g} listSetter={setUntested} onSave={sparaAlder} />
+              <TidsgransFalt g={g} listSetter={setUntested} onSave={sparaTidsgrans} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
                 <button
@@ -129,6 +204,8 @@ export default function BarnpaketSpel() {
           {tested.map(g => (
             <div key={g.id} className="plaque" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderColor: '#7fc98f' }}>
               <span style={{ flex: '1 1 120px', minWidth: 0 }}>{g.title}</span>
+              <AlderKryssrutor g={g} listSetter={setTested} onSave={sparaAlder} />
+              <TidsgransFalt g={g} listSetter={setTested} onSave={sparaTidsgrans} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 <a href={`/play/${g.slug}`} target="_blank" rel="noreferrer" style={{ fontSize: 11 }} title="Testspela">🔍</a>
                 <button
