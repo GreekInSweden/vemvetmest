@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/daily-challenge", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/kartan-daily-challenge", "schedule": "0 5 * * *" }
+  ]
+}

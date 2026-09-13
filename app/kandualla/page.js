@@ -196,9 +196,8 @@ export default function Dashboard() {
             <div className="user">Inloggad som <b style={{ color: 'var(--amber-glow)' }}>{username}</b></div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <a className="btn btn-ghost" href="/profil">Min profil</a>
-              <a className="btn btn-ghost" href="/">Alla spel</a>
-              <a className="btn btn-ghost" href="/kartan">Kartan</a>
               <a className="btn btn-ghost" href="/topplistor">Topplistor</a>
+              <a className="btn btn-ghost" href="/party">Party</a>
               {isAdmin && <a className="btn btn-ghost" href="/admin">Admin</a>}
               <button className="btn btn-ghost" onClick={handleLogout}>Logga ut</button>
             </div>
