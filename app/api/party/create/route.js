@@ -13,10 +13,20 @@ export async function POST(request) {
 
   const supabase = createAdminClient();
 
-  // TODO: när prenumerationsnivåerna (icke-medlem/medlem/prenumerant)
-  // byggs, ska bara "prenumerant" komma hit — samt en kontroll på max
-  // fem aktiva party per ledare. Öppet för alla inloggade så länge
-  // detta bara är ett tekniskt bevis-koncept för realtidsdelen.
+  // Ledaren måste vara betalande medlem (eller admin) för att skapa
+  // ett party. Deltagare som senare går med behöver bara vara
+  // inloggade — inget betalkrav på dem, bara på den som startar.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin, paid_until')
+    .eq('id', check.userId)
+    .single();
+
+  const idag = new Date().toISOString().slice(0, 10);
+  const arBetalande = !!profile?.is_admin || (!!profile?.paid_until && profile.paid_until >= idag);
+  if (!arBetalande) {
+    return Response.json({ error: 'Du behöver ett betalt medlemskap för att skapa ett party.' }, { status: 403 });
+  }
 
   let kod;
   for (let försök = 0; försök < 5; försök++) {
