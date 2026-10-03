@@ -31,6 +31,8 @@ export default function PartyPage() {
   const [nyttNamn, setNyttNamn] = useState('');
   const [ledareSmeknamn, setLedareSmeknamn] = useState('');
   const [radtext, setRadtext] = useState('');
+  const [doljOrd, setDoljOrd] = useState(false); // dölj texten i textarean medan ledaren skriver (öppen stream)
+  const [visaRadtextTillfalligt, setVisaRadtextTillfalligt] = useState(false); // manuell "visa"-knapp, oavsett doljOrd
   const [allaListor, setAllaListor] = useState([]);
   const [listSok, setListSok] = useState('');
   const [valdaListor, setValdaListor] = useState([]); // [{id,title,subtitle}]
@@ -52,6 +54,8 @@ export default function PartyPage() {
   const [harSvarat, setHarSvarat] = useState(false);
   const [mittResultat, setMittResultat] = useState(null);
   const [avslutat, setAvslutat] = useState(false);
+
+  const [visaFragaTillfalligt, setVisaFragaTillfalligt] = useState(false); // manuell peek på en dold runda under spelets gång
 
   // Listrunda-specifikt
   const [hittadeItems, setHittadeItems] = useState([]); // [{rank,namn}]
@@ -92,7 +96,7 @@ export default function PartyPage() {
   async function hamtaRunda(pid, ordning, startadAt) {
     const { data } = await supabase
       .from('party_rundor_public')
-      .select('typ, list_id, fraga, tidsgrans_sekunder')
+      .select('typ, list_id, fraga, tidsgrans_sekunder, dold')
       .eq('party_id', pid)
       .eq('ordning', ordning)
       .single();
@@ -117,6 +121,7 @@ export default function PartyPage() {
         listId: data.list_id,
         listTitel,
         fraga: data.fraga,
+        dold: !!data.dold,
         tidsgransSekunder: data.tidsgrans_sekunder,
         startadAt,
       });
@@ -126,6 +131,7 @@ export default function PartyPage() {
       setMittResultat(null);
       setHittadeItems([]);
       setListFel(false);
+      setVisaFragaTillfalligt(false);
     }
   }
 
@@ -173,6 +179,12 @@ export default function PartyPage() {
     if (runda?.typ === 'kanduallalista') listInputRef.current?.focus();
   }, [runda, hittadeItems]);
 
+  // Döljer frågetexten med punkter (behåller mellanslag/radbrytningar) —
+  // används på ledarens egen skärm för dolda rundor tills tiden runnit ut.
+  function doljText(text) {
+    return (text || '').replace(/\S/g, '•');
+  }
+
   function toggleValdList(list) {
     setValdaListor((prev) =>
       prev.some((l) => l.id === list.id) ? prev.filter((l) => l.id !== list.id) : [...prev, list]
@@ -187,7 +199,13 @@ export default function PartyPage() {
       .filter(Boolean)
       .map((rad) => {
         const [fraga, rattSvar] = rad.split('|');
-        return { typ: 'text', fraga: fraga?.trim(), rattSvar: rattSvar?.trim(), tidsgransSekunder: 20 };
+        return {
+          typ: 'text',
+          fraga: fraga?.trim(),
+          rattSvar: rattSvar?.trim(),
+          tidsgransSekunder: 20,
+          dold: doljOrd,
+        };
       })
       .filter((r) => r.fraga && r.rattSvar);
 
@@ -348,7 +366,32 @@ export default function PartyPage() {
 
           <p className={styles.sektionsrubrik}>Egna snabbfrågor (valfritt)</p>
           <label className={styles.label}>En per rad, format: fråga|svar</label>
-          <textarea className={styles.textarea} rows={4} value={radtext} onChange={(e) => setRadtext(e.target.value)} />
+          <textarea
+            className={`${styles.textarea} ${doljOrd && !visaRadtextTillfalligt ? styles.textareaDold : ''}`}
+            rows={4}
+            value={radtext}
+            onChange={(e) => setRadtext(e.target.value)}
+          />
+          <label className={styles.doljRad}>
+            <input type="checkbox" checked={doljOrd} onChange={(e) => setDoljOrd(e.target.checked)} />
+            Dölj orden medan jag skriver (för öppen stream)
+          </label>
+          {doljOrd && (
+            <>
+              <p className={styles.doljHjalptext}>
+                Texten visas som punkter på din skärm. Under spelets gång visas frågan i klartext
+                för dig som ledare först när tiden för rundan runnit ut — så länge den räknar ner
+                syns bara punkter.
+              </p>
+              <button
+                type="button"
+                className={styles.visaKnapp}
+                onClick={() => setVisaRadtextTillfalligt((v) => !v)}
+              >
+                {visaRadtextTillfalligt ? 'Dölj igen' : 'Visa tillfälligt'}
+              </button>
+            </>
+          )}
 
           <button className="btn btn-primary" style={{ width: 'auto', marginTop: 12 }} onClick={skapaParty}>
             Skapa party
@@ -448,7 +491,23 @@ export default function PartyPage() {
                 </>
               ) : (
                 <>
-                  <p className={styles.fraga}>{runda.fraga}</p>
+                  <p className={`${styles.fraga} ${runda.dold && kvarSekunder > 0 && !visaFragaTillfalligt ? styles.fragaDold : ''}`}>
+                    {runda.dold && kvarSekunder > 0 && !visaFragaTillfalligt ? doljText(runda.fraga) : runda.fraga}
+                  </p>
+                  {runda.dold && kvarSekunder > 0 && (
+                    <>
+                      <p className={styles.doljHjalptext}>Dold tills tiden runnit ut</p>
+                      {isLedare && (
+                        <button
+                          type="button"
+                          className={styles.visaKnapp}
+                          onClick={() => setVisaFragaTillfalligt((v) => !v)}
+                        >
+                          {visaFragaTillfalligt ? 'Dölj igen' : 'Visa tillfälligt (bara du ser detta)'}
+                        </button>
+                      )}
+                    </>
+                  )}
                   {!harSvarat ? (
                     <div className={styles.guessRow}>
                       <input
