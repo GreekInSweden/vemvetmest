@@ -53,6 +53,7 @@ export async function POST(request) {
     ratt_svar: r.typ === 'kanduallalista' ? null : r.rattSvar,
     list_id: r.typ === 'kanduallalista' ? r.listId : null,
     tidsgrans_sekunder: r.tidsgransSekunder || (r.typ === 'kanduallalista' ? 240 : 20),
+    dold: !!r.dold,
   }));
 
   const { error: rundorError } = await supabase.from('party_rundor').insert(rundorRows);
